@@ -6,28 +6,8 @@ Reverse-engineered from the [app.watchduty.org](https://app.watchduty.org) brows
 
 ---
 
-## Screenshot
-
-Rendered against a seeded fixture state at 40×160. Full set under [`docs/screenshots/`](docs/screenshots/) (24×100, 40×160, 60×200 — one per detail tab).
-
-```text
-  ◉ watchduty    │    filters wildfire,location,flooding,hazard    │    ⌖ 37.77,-122.42  ≤500km  (fixture)    │    sort ▼ THREAT    │    4 of 5    │    refresh
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  THREAT  D  INCIDENT                                           │#104994
-             DIST     SIZE     CONTAINMENT                      │▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
-────────────────────────────────────────────────────────────────│  PINE RIDGE FIRE ↗
-▰▰▰  ↗  #104994  Pine Ridge Fire           [active]             │  updates   radio   map   evac
-        12.4km  3,400 ac   28% ▰▰▱                              │  · 14:02  IC: structure threat lifted east flank
-▰▰▱  ←  #105110  Cedar Hollow Fire         [active]             │  · 13:41  CalFire: 28% containment, growth slowing
-        61.0km    980 ac   45% ▰▱▱                              │  · 12:55  evacuations expanded zone HUM-7B
-▰▱▱  ↑  #105316  Box Canyon Fire           [active]             │
-        88.2km    140 ac   80% ▱▱▱                              │
-▱▱▱  ·  #105410  Mariposa Prescribed Burn  [planned]            │
-        24.9km     50 ac   --                                   │
-```
-
-> The screenshots are real ANSI dumps captured under `pyte`; if you want the exact escape-sequence colored versions used in the original capture, see [`docs/screenshots/ansi/`](docs/screenshots/ansi/).
-
+![](/docs/screenshots/update-view.jpg)
+![](/docs/screenshots/map-view.jpg)
 ---
 
 ## Features
