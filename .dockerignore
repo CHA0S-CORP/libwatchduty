@@ -1,0 +1,37 @@
+# The Dockerfile installs from PyPI; the build context only needs the
+# Dockerfile itself. Everything else just bloats build time + risks
+# shipping secrets/HARs nobody asked for.
+
+# Repo internals
+.git
+.github
+.local
+.venv
+venv
+env
+.venvs
+
+# Python build/test artefacts
+__pycache__
+*.py[cod]
+*.egg-info
+build
+dist
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Vendored Node tree — not needed in image (we pip-install the wheel
+# which already ships the bundled mapscii under shared-data).
+vendor
+
+# Editor / OS noise
+.idea
+.vscode
+.DS_Store
+
+# Scratch + capture data that was moved out of the repo
+*.har
+watchduty*.json
+docs/screenshots/png

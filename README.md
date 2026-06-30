@@ -38,6 +38,15 @@ pip install libwatchduty[tui]       # inline mapscii embed (pyte)\
 
 Python ≥ 3.9. The `tui` extra only adds [`pyte`](https://pypi.org/project/pyte/) for the embedded map — the dashboard itself runs without it (you get full-screen mapscii via `m` instead).
 
+Or run in **Docker** (Python + Node + tini + non-root user, image under 200 MB):
+
+```bash
+docker run --rm -it ghcr.io/cha0s-corp/libwatchduty:0.1.3
+```
+
+Full Docker walkthrough (build args, `docker compose`, host volume mounts,
+authenticated tokens, troubleshooting): **[`docs/DOCKER.md`](docs/DOCKER.md)**.
+
 ---
 
 ## Quick start
