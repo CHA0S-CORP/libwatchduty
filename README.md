@@ -51,7 +51,7 @@ Rendered against a seeded fixture state at 40×160. Full set under [`docs/screen
 
 ```bash
 pip install libwatchduty            # CLI + client
-pip install libwatchduty[tui]       # inline mapscii embed (pyte)
+pip install libwatchduty[tui]       # inline mapscii embed (pyte)\
 ```
 
 Python ≥ 3.9. The `tui` extra only adds [`pyte`](https://pypi.org/project/pyte/) for the embedded map — the dashboard itself runs without it (you get full-screen mapscii via `m` instead).
@@ -60,7 +60,13 @@ Python ≥ 3.9. The `tui` extra only adds [`pyte`](https://pypi.org/project/pyte
 
 ## Quick start
 
+> The full walkthrough — install, first launch, keybindings cheat-sheet,
+> `:` commands, scripting against the API — lives in
+> **[`docs/QUICKSTART.md`](docs/QUICKSTART.md)**.
+
 ```bash
+pip install libwatchduty[tui]
+
 watchduty tui --near auto --within 250 --refresh 60
 watchduty fires --active
 watchduty event 105316

@@ -9,7 +9,7 @@ Bug reports, feature requests, and pull requests are all welcome.
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/chaos-corp/libwatchduty.git
+git clone https://github.com/CHA0S-CORP/libwatchduty.git
 cd libwatchduty
 ```
 
@@ -86,7 +86,7 @@ ruff check src tests
    ```
 
 2. Open a PR against `main` on
-   [github.com/chaos-corp/libwatchduty](https://github.com/chaos-corp/libwatchduty).
+   [github.com/CHA0S-CORP/libwatchduty](https://github.com/CHA0S-CORP/libwatchduty).
 
 3. Fill in the PR template — describe the change, link related issues,
    and include a test plan.

@@ -1,13 +1,13 @@
-# Publishing `libwatchduty` under `github.com/chaos-corp`
+# Publishing `libwatchduty` under `github.com/CHA0S-CORP`
 
 This document is the maintainer runbook for cutting the first public release of
-`libwatchduty` under the **chaos-corp** GitHub organization and pushing
+`libwatchduty` under the **CHA0S-CORP** GitHub organization and pushing
 versioned artifacts to PyPI.
 
 It assumes you already have:
 
 - `gh` authenticated against an account with `admin` rights on
-  `github.com/chaos-corp`
+  `github.com/CHA0S-CORP`
 - An SSH key registered with GitHub
 - A clean `main` branch locally at `/Users/max/source/libwatchduty`
 - Maintainer access to the `libwatchduty` project on PyPI (or the ability
@@ -18,14 +18,14 @@ It assumes you already have:
 ## 1. One-time repository creation
 
 Run these once, from the project root, the first time the repo is published
-under `chaos-corp`. Do **not** re-run on subsequent releases.
+under `CHA0S-CORP`. Do **not** re-run on subsequent releases.
 
 ```bash
-gh repo create chaos-corp/libwatchduty --public \
+gh repo create CHA0S-CORP/libwatchduty --public \
   --source=/Users/max/source/libwatchduty \
   --description "Unofficial WatchDuty client + threat-ranked terminal dashboard"
 
-git remote add chaos git@github.com:chaos-corp/libwatchduty.git
+git remote add chaos git@github.com:CHA0S-CORP/libwatchduty.git
 git push -u chaos main
 ```
 
@@ -51,7 +51,7 @@ no long-lived API tokens).
    instead — PyPI will reserve the name on first successful publish.
 2. Fill in:
    - **PyPI project name:** `libwatchduty`
-   - **Owner:** `chaos-corp`
+   - **Owner:** `CHA0S-CORP`
    - **Repository name:** `libwatchduty`
    - **Workflow name:** `publish.yml`
    - **Environment name:** `pypi`
@@ -136,7 +136,7 @@ CI is green on the tip.
    Monitor with:
 
    ```bash
-   gh run watch --repo chaos-corp/libwatchduty
+   gh run watch --repo CHA0S-CORP/libwatchduty
    ```
 
 7. **Post-release sanity checks:**
