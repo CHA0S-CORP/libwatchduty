@@ -3240,6 +3240,67 @@ def _handle_filter_key(state: _TuiState, ch: int) -> bool:
 # mouse + keys
 # ---------------------------------------------------------------------------
 
+def _maybe_consume_bracketed_paste(stdscr, ch: int, state: _TuiState) -> int:
+    """Drop a bracketed-paste sequence so dragged-in files / pasted text
+    can't fill the filter prompt with garbage.
+
+    Bracketed paste is enabled at startup via ``\\x1b[?2004h``. When the
+    terminal sees a paste it wraps the payload in
+    ``\\x1b[200~ <bytes…> \\x1b[201~``. If we see the opening marker
+    arriving as ``ESC``, read forward (non-blocking) until we either
+    consume the closing marker or hit a short read. Returns ``-1`` when
+    consumed so the caller skips dispatch.
+    """
+    if ch != 27:
+        return ch
+    # Peek the next few bytes non-blocking to see if this ESC starts a
+    # paste marker. We only consume when we see the full ESC[200~ ;
+    # otherwise we push the bytes back so curses sees a normal ESC + key.
+    peeked: list[int] = []
+
+    def _read() -> int:
+        stdscr.nodelay(True)
+        try:
+            return stdscr.getch()
+        finally:
+            stdscr.nodelay(False)
+
+    expect = (ord("["), ord("2"), ord("0"), ord("0"), ord("~"))
+    for want in expect:
+        nx = _read()
+        if nx == -1:
+            # Incomplete — push back what we have and bail.
+            for b in reversed(peeked):
+                try:
+                    curses.ungetch(b)
+                except curses.error:
+                    pass
+            return ch
+        peeked.append(nx)
+        if nx != want:
+            for b in reversed(peeked):
+                try:
+                    curses.ungetch(b)
+                except curses.error:
+                    pass
+            return ch
+    # Full opening marker consumed. Now drain until we see the closing
+    # marker ESC[201~, or until ~256 bytes of payload (paste safety cap).
+    closing = (27, ord("["), ord("2"), ord("0"), ord("1"), ord("~"))
+    tail: list[int] = []
+    for _ in range(8192):
+        nx = _read()
+        if nx == -1:
+            break
+        tail.append(nx)
+        if len(tail) >= len(closing) and tuple(tail[-len(closing):]) == closing:
+            break
+    if state.mouse_debug:
+        _set_status(state,
+                    f"dropped paste ({len(tail)} bytes incl. close marker)")
+    return -1
+
+
 def _maybe_consume_sgr_mouse(
     stdscr, ch: int, state: _TuiState,
     req_q: "queue.Queue[tuple]", layout: _Layout,
@@ -4642,7 +4703,11 @@ def _app(stdscr, client: WatchDutyClient, state: _TuiState) -> int:
     # raw SGR bytes that leak past curses are consumed by the dispatch
     # parser below (`_drain_sgr_mouse`).
     try:
-        sys.stdout.write("\x1b[?1006h")
+        # 1006h: SGR-extended mouse; 2004h: bracketed paste so dragged-in
+        # files / pasted text arrive wrapped in ESC[200~ … ESC[201~ —
+        # which `_maybe_consume_bracketed_paste` drops so it can't fill
+        # the filter prompt with garbage.
+        sys.stdout.write("\x1b[?1006h\x1b[?2004h")
         sys.stdout.flush()
     except (OSError, ValueError):
         pass
@@ -4821,11 +4886,13 @@ def _app(stdscr, client: WatchDutyClient, state: _TuiState) -> int:
                     state.quit = True
                     continue
 
-                # If curses (or our manual escape) is delivering SGR mouse
-                # events as raw bytes — `ESC [ < <btn> ; <x> ; <y> M|m` —
-                # consume the full sequence and dispatch via our own
-                # parser, instead of letting `[`/`<`/digits leak through
-                # to keybinds (which previously made all fires vanish).
+                # Bracketed paste FIRST — if a drag-drop or paste arrives
+                # while we're parsing keys, the whole `ESC[200~ … ESC[201~`
+                # envelope is swallowed before any byte reaches a binding.
+                ch = _maybe_consume_bracketed_paste(stdscr, ch, state)
+                # Then SGR mouse — `ESC [ < <btn> ; <x> ; <y> M|m` is
+                # consumed and dispatched via our parser, so `[`/`<`/digits
+                # don't leak into keybinds.
                 ch = _maybe_consume_sgr_mouse(
                     stdscr, ch, state, req_q, layout,
                 )
@@ -4874,7 +4941,7 @@ def _app(stdscr, client: WatchDutyClient, state: _TuiState) -> int:
                 continue
     finally:
         try:
-            sys.stdout.write("\x1b[?1006l")
+            sys.stdout.write("\x1b[?1006l\x1b[?2004l")
             sys.stdout.flush()
         except (OSError, ValueError):
             pass

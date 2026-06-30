@@ -19,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.3] - 2026-06-30
+
+### Fixed
+
+- README screenshots now reference absolute
+  `raw.githubusercontent.com/CHA0S-CORP/libwatchduty/main/...` URLs
+  so they render on the PyPI project page, not just on github.com.
+- **Drag-and-drop into the TUI no longer fills the filter prompt
+  with the dropped file path.** Bracketed-paste mode is enabled at
+  startup (`\x1b[?2004h`) and a dispatch-layer consumer drains the
+  full `ESC[200~ … ESC[201~` envelope before any byte reaches a
+  keybinding. Works on iTerm2, ghostty, kitty, foot, WezTerm,
+  modern xterm. Status: when `:mouse-debug` is on, dropped paste
+  size is shown in the footer.
+
 ## [0.1.2] - 2026-06-30
 
 ### Added

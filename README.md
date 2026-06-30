@@ -6,8 +6,10 @@ Reverse-engineered from the [app.watchduty.org](https://app.watchduty.org) brows
 
 ---
 
-![](/docs/screenshots/update-view.jpg)
-![](/docs/screenshots/map-view.jpg)
+<!-- absolute raw.githubusercontent URLs so the screenshots render
+     on PyPI's project page, not just on github.com -->
+![update view](https://raw.githubusercontent.com/CHA0S-CORP/libwatchduty/main/docs/screenshots/update-view.jpg)
+![map view](https://raw.githubusercontent.com/CHA0S-CORP/libwatchduty/main/docs/screenshots/map-view.jpg)
 ---
 
 ## Features
