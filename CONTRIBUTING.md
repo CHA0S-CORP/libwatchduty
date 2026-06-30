@@ -1,116 +1,86 @@
 # Contributing to libwatchduty
 
-Thanks for your interest in contributing! This project is an unofficial Python
-client for [app.watchduty.org](https://app.watchduty.org) fire/incident data.
-Bug reports, feature requests, and pull requests are all welcome.
+Unofficial Python client + terminal dashboard for
+[app.watchduty.org](https://app.watchduty.org). Bug reports, feature
+requests, and pull requests are welcome.
 
-## Getting set up
-
-### 1. Clone the repository
+## Develop
 
 ```bash
 git clone https://github.com/CHA0S-CORP/libwatchduty.git
 cd libwatchduty
-```
 
-### 2. Create a virtual environment
-
-```bash
-python -m venv .venv
-source .venv/bin/activate         # macOS / Linux
-# .venv\Scripts\activate          # Windows PowerShell
-```
-
-Python 3.10+ is recommended (CI tests 3.10, 3.11, 3.12, 3.13).
-
-### 3. Install the package in editable mode with dev extras
-
-```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install --upgrade pip
-pip install -e ".[test,tui]"
+pip install -e '.[test,tui]'
+
+pytest tests/                          # 36 tests, all pure-Python
+pytest tests/ -ra --tb=short           # verbose with skip summary
 ```
 
-The `test` extra installs `pytest` and any other test dependencies.
-The `tui` extra installs `pyte`, used by the embedded mapscii map view.
+Python ≥3.10 (CI runs 3.10–3.13 on Ubuntu and macOS). The `test`
+extra adds `pytest` + `responses`; `tui` adds `pyte` for the
+embedded mapscii VT.
 
-### 4. Run the tests
-
-```bash
-pytest tests/
-```
-
-For verbose output and a summary of skips/failures:
-
-```bash
-pytest tests/ -ra
-```
-
-### 5. (Optional) Run the linter
-
-If a ruff config is present:
+### Optional: lint
 
 ```bash
 pip install ruff
 ruff check src tests
 ```
 
-## Making changes
+### Optional: re-capture screenshots
 
-1. **Create a branch** off `main`:
+```bash
+python scripts/capture_screenshots.py     # writes docs/screenshots/
+```
 
-   ```bash
-   git checkout -b my-feature
-   ```
+## Patch flow
 
-2. **Make focused commits** with clear messages. Prefer small, reviewable
-   commits over one giant change.
-
-3. **Add or update tests** for any behavior change. New features should
-   come with tests that demonstrate them.
-
-4. **Update the changelog.** Add an entry under `[Unreleased]` in
-   `CHANGELOG.md` describing what changed.
-
-5. **Run the test suite locally** before opening a PR:
-
-   ```bash
-   pytest tests/
-   ```
-
-## Opening a pull request
-
-1. Push your branch:
-
-   ```bash
-   git push -u origin my-feature
-   ```
-
-2. Open a PR against `main` on
-   [github.com/CHA0S-CORP/libwatchduty](https://github.com/CHA0S-CORP/libwatchduty).
-
-3. Fill in the PR template — describe the change, link related issues,
-   and include a test plan.
-
-4. CI will run the test matrix (Python 3.10-3.13 on Ubuntu and macOS).
-   Please make sure it passes; push fixups as needed.
-
-## Reporting bugs
-
-Open an issue with:
-
-- What you were trying to do
-- What happened instead
-- A minimal reproduction (code snippet, command, sample data if possible)
-- Your OS and Python version
-- The installed version of `libwatchduty`
+1. Branch off `main`. Small, focused commits beat one giant change.
+2. Add or update tests for any behavior change. Run `pytest tests/`
+   before pushing.
+3. Drop an entry under `[Unreleased]` in `CHANGELOG.md`.
+4. Push, open a PR against `main`, fill in the template. CI runs the
+   matrix; please keep it green.
 
 ## Code style
 
-- Follow existing patterns in `src/libwatchduty/`.
-- Keep public API surface small and documented via docstrings.
-- Avoid adding heavy dependencies; prefer the standard library when reasonable.
+- Match the conventions already in `src/libwatchduty/`.
+- Public API is small and docstring-documented. Add docstrings to new
+  public surface.
+- Stdlib first — adding a runtime dependency needs a justification in
+  the PR description.
+- Keep network-touching code in `client.py` (or the relevant module),
+  off the UI thread; the TUI's `_TuiState` is the single source of
+  truth.
+
+## Reporting bugs
+
+Open an [issue](https://github.com/CHA0S-CORP/libwatchduty/issues)
+with:
+
+- What you were trying to do.
+- What happened instead (error trace, screenshot, terminal recording).
+- Minimal reproduction (a `WatchDutyClient` call, a key sequence in
+  the TUI).
+- Your OS, Python version, and `libwatchduty` version
+  (`pip show libwatchduty`).
+- If TUI: your `$TERM` and terminal app (iTerm2 / ghostty / kitty /
+  Terminal.app / tmux session inside one of those).
+
+## Release flow
+
+1. Bump `version` in `pyproject.toml`.
+2. Move items from `[Unreleased]` into a new `[X.Y.Z]` section in
+   `CHANGELOG.md`.
+3. Commit, tag `vX.Y.Z`, push the tag — `.github/workflows/publish.yml`
+   builds and publishes to PyPI via OIDC Trusted Publisher.
+4. The full one-time setup of the publisher is captured in
+   [`docs/CHAOS_CORP_RELEASE.md`](docs/CHAOS_CORP_RELEASE.md).
 
 ## License
 
-By contributing you agree that your contributions will be licensed under
-the MIT License, the same license that covers the project.
+By contributing you agree that your contributions will be licensed
+under the MIT License, the same license that covers the project.

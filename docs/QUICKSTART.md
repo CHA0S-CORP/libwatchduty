@@ -149,11 +149,19 @@ inject your own (handy for testing with `responses`).
 ## 6 · what next
 
 - Mark a real saved place: `:near 33.92,-117.24` then `:within 100`.
+  Or skip typing coords entirely — `--near auto` walks a privacy-aware
+  fallback chain (CoreLocationCLI on macOS, then IP geolocation). The
+  full source list + privacy notes live in
+  [`docs/LOCATION.md`](LOCATION.md).
 - Drop into the Map tab — mapscii loads centred on your selected fire
   at zoom 13 with a red ▲ marker. Arrow keys pan, `+ -` zoom.
 - Open the Updates tab on a noisy incident, press `L` to enable LIVE
   polling — new updates flash a red `NEW` chip and the terminal bell
   fires + OSC9 toast on iTerm/ghostty.
+- Build your own scripts with the client — see
+  [`docs/EXAMPLES.md`](EXAMPLES.md) for six annotated, runnable
+  example programs (live alerts, camera capture, radio lookup,
+  bundle dump, …).
 - Hit `?` any time for the full key map.
 
 ## Troubleshooting

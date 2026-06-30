@@ -137,6 +137,15 @@ Read off the live source in [`src/libwatchduty/tui.py`](src/libwatchduty/tui.py)
 
 ## Threat scoring
 
+> ⚠️ **WIP — v1 is intentionally rough.** The formula below is a
+> triage hint, not a fire-behavior model: it's linear in proximity,
+> saturates at ~1000 ac, and collapses to zero on stale `containment`
+> values. A **v2 model** is in development — opt in with
+> `:threat-model v2` (or `WATCHDUTY_THREAT_MODEL=v2`). See
+> **[`docs/THREAT_SCORING.md`](docs/THREAT_SCORING.md)** for the v2
+> formula, a side-by-side comparison on five example fires, and the
+> roadmap.
+
 Each fire gets a composite `[0, 100]` score that drives the default sort and the colored `▰▱` bar. The formula multiplies normalized factors so any near-zero input collapses the score (a 100k-acre fire at 600 km still scores low):
 
 > **score = clamp(100 · proximity · (0.4 + 0.6·size) · uncontained · growth · wind · bearing, 0, 100)**

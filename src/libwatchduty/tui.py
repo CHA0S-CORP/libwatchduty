@@ -50,6 +50,7 @@ from typing import Any
 
 from .client import GEO_EVENT_TYPES, WatchDutyClient, WatchDutyError
 from . import aircraft as _aircraft
+from . import threat as _threat_mod
 
 # Be polite to api.watchduty.org.
 _MIN_AUTO_REFRESH = 30
@@ -301,13 +302,50 @@ def _threat_factors(
     acreage_hist: list[tuple[float, float]],
     wind: dict | None,
     near: tuple[float, float] | None,
+    model: str = "v1",
 ) -> dict[str, float]:
     """Compute composite threat factors per README formula.
 
     Returns ``{score, proximity, size, uncontained, growth, growth_rate,
     wind, bearing, planned}`` — score is the final clamped [0,100] value.
     Degrades when wind/growth absent (those multipliers stay at 1.0).
+
+    When ``model == "v2"`` the work is delegated to
+    :func:`libwatchduty.threat.compute_threat` (Candidate A — ISI-anchored
+    physics-informed scoring). v1 keeps the original size/wind-gain
+    multiplicative formula for backwards compatibility.
     """
+    if model == "v2":
+        tf = _threat_mod.compute_threat(
+            fire,
+            distance_km=distance_km,
+            within_km=within_km,
+            acreage_history=acreage_hist or [],
+            wind=wind,
+            near=near,
+        )
+        c = tf.components
+        # Map the v2 component dict back onto the v1-shaped surface that
+        # the rest of the TUI consumes (sort, KV table, sparkline). The
+        # `intensity` term replaces the v1 `size` slot, and `wind` /
+        # `bearing` collapse into the ISI-anchored intensity (they're
+        # already baked in there), so we expose them as 1.0 placeholders
+        # to keep callers that index by name happy.
+        return {
+            "score": float(c.get("score", tf.score)),
+            "proximity": float(c.get("proximity", 0.0)),
+            "size": float(c.get("intensity", 0.0)),
+            "uncontained": float(c.get("uncontained", 0.0)),
+            "growth": float(c.get("growth_mul", 1.0)),
+            "growth_rate": float(c.get("growth_rate", 0.0)),
+            "wind": float(c.get("wind_kph", 0.0)),
+            "bearing": 1.0,
+            "planned": float(c.get("planned", 0.0)),
+            "isi": float(c.get("isi", 0.0)),
+            "isi_norm": float(c.get("isi_norm", 0.0)),
+            "ffmc_star": float(c.get("ffmc_star", 0.0)),
+        }
+
     data = fire.get("data") or {}
     try:
         acres = float(data.get("acreage") or 0)
@@ -462,6 +500,11 @@ class _TuiState:
     near_source: str = ""
     within_km: float = 250.0
     auto_refresh: int = 0
+    # Threat scoring model: "v1" = legacy size+wind-gain multiplicative,
+    # "v2" = Candidate A ISI-anchored physics-informed (see threat.py).
+    # Default v1 preserves existing behaviour; switch with `:threat-model v2`
+    # or via the LIBWATCHDUTY_THREAT_MODEL env var at startup.
+    threat_model: str = "v1"
 
     quit: bool = False
     last_g: float = 0.0
@@ -605,6 +648,7 @@ def _recompute_threats(state: _TuiState) -> None:
             acreage_hist=state.acreage_history.get(eid_i) or [],
             wind=state.wind.get(eid_i),
             near=state.near,
+            model=state.threat_model,
         )
         state.threat_scores[eid_i] = f["score"]
         state.threat_factors[eid_i] = f
@@ -3136,6 +3180,14 @@ def _apply_command(state: _TuiState, req_q: "queue.Queue[tuple]", line: str) -> 
             return f"bad refresh: {arg!r}"
         state.auto_refresh = max(_MIN_AUTO_REFRESH, n) if n else 0
         return f"refresh = {state.auto_refresh}s"
+    if cmd in ("threat-model", "threat_model", "tm"):
+        choice = arg.strip().lower()
+        if choice not in ("v1", "v2"):
+            return f"threat-model must be v1 or v2 (got {arg!r})"
+        state.threat_model = choice
+        _recompute_threats(state)
+        _recompute_visible(state)
+        return f"threat-model = {choice}"
     return f"unknown: {cmd}"
 
 
@@ -3276,6 +3328,11 @@ def _maybe_consume_sgr_mouse(
     if btn == 65:
         if state.mouse_wheel_invert:
             btn = 64
+    if (btn in (64, 65) and is_press
+            and _maybe_zoom_mapscii(state, mx, my,
+                                    wheel_up=(btn == 64),
+                                    wheel_down=(btn == 65))):
+        return -1
     if btn == 64 and is_press:
         if over_list:
             state.selected_idx = max(0, state.selected_idx - 1)
@@ -3328,6 +3385,37 @@ def _maybe_consume_sgr_mouse(
     return -1   # swallowed
 
 
+def _mouse_over_mapscii(state: _TuiState, mx: int, my: int) -> bool:
+    """True if (mx, my) is inside the embedded mapscii rectangle."""
+    if (state.active_tab != "map"
+            or state.mapscii_embed is None
+            or not getattr(state.mapscii_embed, "alive", False)
+            or not state.mapscii_rect):
+        return False
+    try:
+        y0, x0, h, w = state.mapscii_rect
+    except (ValueError, TypeError):
+        return False
+    return y0 <= my < y0 + h and x0 <= mx < x0 + w
+
+
+def _maybe_zoom_mapscii(state: _TuiState, mx: int, my: int,
+                        wheel_up: bool, wheel_down: bool) -> bool:
+    """If wheel fires while hovering the embedded mapscii, send the
+    zoom-in/out key to its PTY and report consumed=True."""
+    if not _mouse_over_mapscii(state, mx, my):
+        return False
+    if state.mouse_wheel_invert:
+        wheel_up, wheel_down = wheel_down, wheel_up
+    if wheel_up:
+        state.mapscii_embed.send(b"a")
+        return True
+    if wheel_down:
+        state.mapscii_embed.send(b"z")
+        return True
+    return False
+
+
 def _handle_mouse(state: _TuiState, req_q: "queue.Queue[tuple]", layout: _Layout) -> None:
     try:
         _, mx, my, _, bstate = curses.getmouse()
@@ -3361,13 +3449,19 @@ def _handle_mouse(state: _TuiState, req_q: "queue.Queue[tuple]", layout: _Layout
     if state.mouse_wheel_invert:
         wheel_up_mask, wheel_down_mask = wheel_down_mask, wheel_up_mask
 
-    if wheel_up_mask and (bstate & wheel_up_mask):
+    wheel_up = bool(wheel_up_mask and (bstate & wheel_up_mask))
+    wheel_down = bool(wheel_down_mask and (bstate & wheel_down_mask))
+    # Mapscii rect intercepts wheel events: up=zoom in, down=zoom out.
+    if (wheel_up or wheel_down) and _maybe_zoom_mapscii(
+            state, mx, my, wheel_up, wheel_down):
+        return
+    if wheel_up:
         if over_list:
             state.selected_idx = max(0, state.selected_idx - 1)
         else:
             state.detail_scroll = max(0, state.detail_scroll - step)
         return
-    if wheel_down_mask and (bstate & wheel_down_mask):
+    if wheel_down:
         if over_list and state.visible_fires:
             state.selected_idx = min(len(state.visible_fires) - 1,
                                      state.selected_idx + 1)
@@ -4834,6 +4928,11 @@ def run(
     state.auto_refresh = (
         max(_MIN_AUTO_REFRESH, int(auto_refresh)) if auto_refresh else 0
     )
+    # Opt into the Candidate A (ISI-anchored) scorer via env var. Anything
+    # other than "v2" leaves the legacy v1 behaviour untouched.
+    env_model = (os.environ.get("LIBWATCHDUTY_THREAT_MODEL") or "").strip().lower()
+    if env_model in ("v1", "v2"):
+        state.threat_model = env_model
     # Default sort: threat when --near is set; updated otherwise.
     state.sort_key = "threat" if near is not None else "updated"
 
