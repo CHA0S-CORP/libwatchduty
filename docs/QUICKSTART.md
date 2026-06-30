@@ -5,8 +5,30 @@ Get a threat-ranked dashboard of every active wildfire near you in about
 
 ## 1 · install
 
+### Use a virtualenv
+
+Don't install into your system Python — modern macOS / Debian / Ubuntu
+block it (PEP 668). One venv per project keeps things tidy:
+
 ```bash
-pip install libwatchduty[tui]
+python3 -m venv ~/.venvs/watchduty
+source ~/.venvs/watchduty/bin/activate    # bash / zsh
+# fish:  source ~/.venvs/watchduty/bin/activate.fish
+# Windows PowerShell:  & ~/.venvs/watchduty/Scripts/Activate.ps1
+```
+
+Alternatives if you'd rather not manage venvs yourself:
+
+```bash
+pipx install 'libwatchduty[tui]'          # isolated, on $PATH
+uv tool install 'libwatchduty[tui]'       # same idea, faster
+```
+
+### Install the package
+
+```bash
+pip install --upgrade pip
+pip install 'libwatchduty[tui]'
 ```
 
 - The base install gives you the `WatchDutyClient` Python class and the
@@ -16,9 +38,34 @@ pip install libwatchduty[tui]
   without it (mapscii fullscreens on `m` instead), but the inline map is
   worth the extra ~5 kB.
 
-> If you want the bundled mapscii Node binary too, run
-> `watchduty-install-mapscii` once after install. It checks for
-> `node`+`npm` and runs `npm install -g mapscii` for you.
+### Install the mapscii Node binary
+
+The Map tab embeds [mapscii](https://github.com/rastapasta/mapscii) — a
+Node.js terminal map viewer. A pinned, patched checkout ships inside the
+wheel under `share/libwatchduty/vendor/mapscii/`, so for most installs
+this works out of the box. If you installed from sdist or the bundled
+copy is missing, the included installer fetches a working one:
+
+```bash
+watchduty-install-mapscii
+```
+
+It checks `$PATH` for `node` + `npm`. If they're missing:
+
+```bash
+# macOS
+brew install node
+
+# Debian / Ubuntu
+sudo apt-get install -y nodejs npm
+
+# Anywhere — official installer
+# https://nodejs.org/en/download/
+```
+
+then re-run `watchduty-install-mapscii`. Without mapscii at all, the Map
+tab still draws a zero-dep quadrant/radar plot and reports the fire's
+lat/lng — just no real map tiles.
 
 ## 2 · launch the dashboard
 
