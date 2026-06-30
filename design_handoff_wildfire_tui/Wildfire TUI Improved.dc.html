@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;background:#070809;}
+  *{box-sizing:border-box;}
+  ::selection{background:#1f4a73;}
+  .upd-scroll{scrollbar-width:thin;scrollbar-color:#3a4654 #11161c;}
+  .upd-scroll::-webkit-scrollbar{width:8px;}
+  .upd-scroll::-webkit-scrollbar-track{background:#11161c;border-radius:4px;}
+  .upd-scroll::-webkit-scrollbar-thumb{background:#3a4654;border-radius:4px;}
+  .upd-scroll::-webkit-scrollbar-thumb:hover{background:#4a5867;}
+</style>
+</helmet>
+<div style="font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace; background:#0c0e11; color:#d4dae0; width:1600px; height:900px; display:flex; flex-direction:column; font-size:14px; line-height:1.45; overflow:hidden; border:1px solid #1c2128;">
+
+  <!-- ============ STATUS BAR (clarified, labeled) ============ -->
+  <div style="display:flex; align-items:center; gap:18px; background:#11151b; border-bottom:1px solid #1c2128; padding:6px 12px; white-space:nowrap; color:#9aa4b0;">
+    <span style="color:#3fb950; font-weight:700;">◉ watchduty</span>
+    <span><span style="color:#6b7681;">filters </span><span style="color:#c9d1d9;">wildfire,location,flooding,hazard</span></span>
+    <span><span style="color:#6b7681;">⌖ near </span><span style="color:#c9d1d9;">33.92,−117.24</span><span style="color:#6b7681;"> · ≤250km · </span><span style="color:#58c5ff;">ip:ipapi.co</span></span>
+    <span><span style="color:#6b7681;">sort </span><span style="color:#e3b341; font-weight:700;">▼ THREAT</span></span>
+    <span><span style="color:#c9d1d9;">9</span><span style="color:#6b7681;"> of 354</span></span>
+    <span style="display:flex; align-items:center; gap:6px;"><span style="color:#6b7681;">refresh</span><span style="display:inline-block; width:46px; height:6px; background:#1c2128; border-radius:3px; overflow:hidden;"><span style="display:block; width:80%; height:100%; background:#3fb950;"></span></span><span style="color:#c9d1d9;">48s</span></span>
+    <span style="margin-left:auto; background:#3fb950; color:#06120a; font-weight:700; padding:1px 9px; border-radius:3px; letter-spacing:1px;">● LIVE</span>
+  </div>
+
+  <!-- ============ BODY: list | detail ============ -->
+  <div style="flex:1; display:flex; min-height:0;">
+
+    <!-- ---------- LEFT: fire list ---------- -->
+    <div style="width:42%; border-right:1px solid #1c2128; display:flex; flex-direction:column; min-width:0;">
+
+      <!-- column header (NEW) -->
+      <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:5px 12px; border-bottom:1px solid #1c2128; color:#6b7681; font-size:12px; letter-spacing:.5px; background:#0f1318;">
+        <span>THREAT</span><span>DIR</span><span style="text-align:right;">DIST</span><span style="text-align:right;">SIZE</span><span>CONTAINMENT</span><span>INCIDENT</span>
+      </div>
+
+      <!-- rows -->
+      <div style="flex:1; overflow:hidden;">
+
+        <!-- 1 Harvard — new, uncontrolled, very close -->
+        <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:3px 12px;">
+          <span><span style="color:#ff6a5f; letter-spacing:1px;">▰▰▰</span> <span style="color:#ff6a5f; font-weight:700;">92</span></span>
+          <span style="color:#6fb3d6;">↑</span>
+          <span style="text-align:right; color:#e8eef4;">8.0km</span>
+          <span style="text-align:right; color:#6b7681;">0ac</span>
+          <span style="color:#6b7681; letter-spacing:-1px;">··········<span style="margin-left:6px; letter-spacing:0;">n/a</span></span>
+          <span style="color:#ff6a5f;"><span style="color:#ff6a5f;">▲</span> Harvard Fire</span>
+        </div>
+
+        <!-- 2 Junction — SELECTED, escalating fast, far but air attack + structure threat -->
+        <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:3px 12px; background:#16314c; box-shadow:inset 3px 0 0 #58c5ff;">
+          <span><span style="color:#ff6a5f; letter-spacing:1px;">▰▰▰</span> <span style="color:#ff6a5f; font-weight:700;">78</span></span>
+          <span style="color:#6fb3d6; font-weight:700;">↘</span>
+          <span style="text-align:right; color:#e8eef4;">95.3km</span>
+          <span style="text-align:right; color:#e3b341;">11ac</span>
+          <span style="color:#6b7681; letter-spacing:-1px;">··········<span style="margin-left:6px; letter-spacing:0;">n/a</span></span>
+          <span style="color:#fff; font-weight:700;"><span style="color:#ff6a5f;">▲</span> Junction Fire</span>
+        </div>
+
+        <!-- 3 Iron — large but 95% contained, close -->
+        <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:3px 12px;">
+          <span><span style="color:#e3b341; letter-spacing:1px;">▰▰▱</span> <span style="color:#e3b341; font-weight:700;">41</span></span>
+          <span style="color:#6fb3d6;">↖</span>
+          <span style="text-align:right; color:#e8eef4;">9.9km</span>
+          <span style="text-align:right; color:#9aa4b0;">635ac</span>
+          <span style="letter-spacing:-1px;"><span style="color:#3fb950;">█████████</span><span style="color:#283039;">▏</span><span style="margin-left:6px; letter-spacing:0; color:#3fb950;">95%</span></span>
+          <span style="color:#9aa4b0;">Iron Fire</span>
+        </div>
+
+        <!-- 4 House Fire -->
+        <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:3px 12px;">
+          <span><span style="color:#e3b341; letter-spacing:1px;">▰▰▱</span> <span style="color:#e3b341; font-weight:700;">35</span></span>
+          <span style="color:#6fb3d6;">↘</span>
+          <span style="text-align:right; color:#e8eef4;">136.0km</span>
+          <span style="text-align:right; color:#9aa4b0;">10ac</span>
+          <span style="color:#6b7681; letter-spacing:-1px;">··········<span style="margin-left:6px; letter-spacing:0;">n/a</span></span>
+          <span style="color:#c9d1d9;">House Fire</span>
+        </div>
+
+        <!-- 5 Highway Fire -->
+        <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:3px 12px;">
+          <span><span style="color:#e3b341; letter-spacing:1px;">▰▱▱</span> <span style="color:#e3b341; font-weight:700;">22</span></span>
+          <span style="color:#6fb3d6;">↓</span>
+          <span style="text-align:right; color:#e8eef4;">220.1km</span>
+          <span style="text-align:right; color:#9aa4b0;">2ac</span>
+          <span style="color:#6b7681; letter-spacing:-1px;">··········<span style="margin-left:6px; letter-spacing:0;">n/a</span></span>
+          <span style="color:#c9d1d9;">Highway Fire</span>
+        </div>
+
+        <!-- 6 Sandy — mostly contained -->
+        <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:3px 12px;">
+          <span><span style="color:#3fb950; letter-spacing:1px;">▰▱▱</span> <span style="color:#3fb950; font-weight:700;">18</span></span>
+          <span style="color:#6fb3d6;">↓</span>
+          <span style="text-align:right; color:#e8eef4;">219.8km</span>
+          <span style="text-align:right; color:#9aa4b0;">99ac</span>
+          <span style="letter-spacing:-1px;"><span style="color:#3fb950;">████████</span><span style="color:#283039;">··</span><span style="margin-left:6px; letter-spacing:0; color:#3fb950;">80%</span></span>
+          <span style="color:#9aa4b0;">Sandy Fire</span>
+        </div>
+
+        <!-- 7 Pecan Rec Center — location type -->
+        <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:3px 12px;">
+          <span><span style="color:#3fb950; letter-spacing:1px;">▰▱▱</span> <span style="color:#3fb950; font-weight:700;">15</span></span>
+          <span style="color:#6fb3d6;">→</span>
+          <span style="text-align:right; color:#e8eef4;">92.1km</span>
+          <span style="text-align:right; color:#6b7681;">—</span>
+          <span style="color:#283039; letter-spacing:-1px;">··········</span>
+          <span style="color:#9aa4b0;">Pecan Recreation Center</span>
+        </div>
+
+        <!-- 8 Prescribed Burn — planned -->
+        <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:3px 12px; opacity:.62;">
+          <span><span style="color:#6b7681; letter-spacing:1px;">▱▱▱</span> <span style="color:#6b7681; font-weight:700;">5</span></span>
+          <span style="color:#6b7681;">↗</span>
+          <span style="text-align:right; color:#9aa4b0;">126.0km</span>
+          <span style="text-align:right; color:#6b7681;">—</span>
+          <span style="color:#6b7681; letter-spacing:0;">PLANNED</span>
+          <span style="color:#6b7681;">Prescribed Burn</span>
+        </div>
+
+        <!-- 9 Viejas Prescribed Burn — planned -->
+        <div style="display:grid; grid-template-columns:78px 20px 60px 58px 132px 1fr; align-items:center; gap:6px; padding:3px 12px; opacity:.62;">
+          <span><span style="color:#6b7681; letter-spacing:1px;">▱▱▱</span> <span style="color:#6b7681; font-weight:700;">5</span></span>
+          <span style="color:#6b7681;">↘</span>
+          <span style="text-align:right; color:#9aa4b0;">129.4km</span>
+          <span style="text-align:right; color:#6b7681;">—</span>
+          <span style="color:#6b7681; letter-spacing:0;">PLANNED</span>
+          <span style="color:#6b7681;">Viejas Fallout Prescribed Burn</span>
+        </div>
+
+      </div>
+
+      <!-- legend (NEW) -->
+      <div style="border-top:1px solid #1c2128; padding:5px 12px; color:#6b7681; font-size:12px; display:flex; gap:16px; flex-wrap:wrap; background:#0f1318;">
+        <span><span style="color:#ff6a5f;">▰▰▰</span> threat = proximity × size × (1−containment) × growth</span>
+        <span><span style="color:#ff6a5f;">▲</span> growing</span>
+        <span>T: <span style="color:#ff6a5f;">F</span>ire <span style="color:#58c5ff;">L</span>ocation</span>
+      </div>
+    </div>
+
+    <!-- ---------- RIGHT: detail ---------- -->
+    <div style="flex:1; min-width:0; display:flex; flex-direction:column; padding:8px 16px; overflow:hidden;">
+
+      <!-- title + link -->
+      <div style="color:#6b7681; font-size:12px; letter-spacing:.5px;">#105316</div>
+      <div style="color:#ff6a5f; font-weight:700; font-size:23px; line-height:1.15;">Junction Fire <span style="color:#58c5ff; font-size:16px;">↗</span></div>
+      <a href="#" style="color:#58c5ff; text-decoration:underline; font-size:13px;">https://app.watchduty.org/i/105316</a>
+
+      <!-- kv block + camera side-by-side -->
+      <div style="margin-top:10px; display:flex; gap:24px; align-items:flex-start;">
+      <div style="flex:0 1 480px; min-width:0; display:grid; grid-template-columns:104px 1fr; row-gap:2px; column-gap:8px; font-size:13.5px; align-items:baseline;">
+        <span style="color:#6b7681;">threat</span>
+        <span style="line-height:1.45;"><span style="color:#ff6a5f; font-weight:700; font-size:16px;">78</span> <span style="color:#ff6a5f; letter-spacing:1px;">▰▰▰</span> <span style="color:#6b7681;">/ 100</span><br><span style="color:#8a929c; font-size:12px;">proximity <span style="color:#c9d1d9;">0.62</span> × size <span style="color:#c9d1d9;">0.30</span> × uncontained <span style="color:#c9d1d9;">1.00</span> × growth <span style="color:#ff6a5f;">3.4×</span> × wind <span style="color:#ff6a5f;">1.4×</span> × bearing <span style="color:#c9d1d9;">0.9×</span></span></span>
+        <span style="color:#6b7681;">address</span><span style="color:#d4dae0;">25000 Block of CA-79, Santa Ysabel</span>
+        <span style="color:#6b7681;">coords</span><span style="color:#d4dae0;">33.1873, −116.7009</span>
+        <!-- bearing (NEW) -->
+        <span style="color:#6b7681;">bearing</span><span style="color:#d4dae0;"><span style="color:#58c5ff;">↘ SE</span> · 95.3 km from you</span>
+        <span style="color:#6b7681;">wind</span><span style="color:#d4dae0;"><span style="color:#e3b341;">↗ 14 mph WSW, gusts 24</span> · driving spread toward you (CA-79 corridor)</span>
+        <span style="color:#6b7681;">distance</span>
+        <span style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;"><span style="color:#e8eef4; font-weight:700;">95.3 km</span><span style="color:#e3b341; letter-spacing:3px;">▇▆▅▃</span><span style="color:#ff6a5f; font-weight:700;">▼ −1.8km / 27m</span><span style="color:#6b7681;">closing (97.1→95.3)</span></span>
+        <!-- acreage with trend sparkline (NEW) -->
+        <span style="color:#6b7681;">acreage</span>
+        <span style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;"><span style="color:#e3b341; font-weight:700;">11 ac</span><span style="color:#e3b341; letter-spacing:3px;">▁▂▃▇</span><span style="color:#ff6a5f; font-weight:700;">▲ +340% / 27m</span><span style="color:#6b7681;">(2.5→3→5→11)</span></span>
+        <!-- containment bar consistent -->
+        <span style="color:#6b7681;">containment</span><span style="color:#6b7681; letter-spacing:-1px;">··········<span style="margin-left:8px; letter-spacing:0;">0% — uncontained</span></span>
+        <span style="color:#6b7681;">modified</span><span style="color:#d4dae0;">2026-06-30 00:44 <span style="color:#6b7681;">· 4m ago</span></span>
+        <span style="color:#6b7681;">status</span><span><span style="background:#e3b341; color:#1a1306; font-weight:700; padding:0 7px; border-radius:3px;">ACTIVE</span></span>
+        <span style="color:#6b7681;">resources</span><span style="color:#d4dae0;"><span style="color:#58c5ff;">📻 3 feeds</span> &nbsp; <span style="color:#58c5ff;">📷 2 cams</span> &nbsp; <span style="color:#ff6a5f;">🔥 1 fps run</span></span>
+      </div>
+
+      <!-- inline camera thumbnail (NEW) — text below so the frame can be wider -->
+      <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:360px;">
+        <div style="width:100%; height:288px; border:1px solid #2a323c; border-radius:3px; background-image:repeating-linear-gradient(135deg,#14181e 0 10px,#171c23 10px 20px); display:flex; align-items:flex-end;">
+          <div style="width:100%; padding:4px 7px; background:linear-gradient(transparent,rgba(0,0,0,.7)); color:#9aa4b0; font-size:11px;">▶ live cam · Palomar S · 00:42 ago</div>
+        </div>
+        <div style="font-size:12px; color:#9aa4b0;">ALERTWest · cam #4412</div>
+        <div style="font-size:12px; color:#6b7681;">press <span style="color:#e3b341;">i</span> fullscreen · press <span style="color:#e3b341;">c</span> all cams</div>
+      </div>
+
+      </div><!-- /top flex row -->
+
+      <!-- detail tabs (NEW) -->
+      <div style="margin-top:12px; display:flex; gap:2px; border-bottom:1px solid #1c2128; font-size:13px;">
+        <div onClick="{{ pickUpdates }}" style="position:relative; padding:5px 14px; cursor:pointer; color:#c9d1d9;" style-hover="color:#fff;">Updates <span style="color:#6b7681;">(4)</span> <span style="color:#3fb950;">●</span><sc-if value="{{ isUpdates }}" hint-placeholder-val="{{ true }}"><span style="position:absolute; left:0; right:0; bottom:-1px; height:2px; background:#58c5ff;"></span></sc-if></div>
+        <div onClick="{{ pickRadio }}" style="position:relative; padding:5px 14px; cursor:pointer; color:#9aa4b0;" style-hover="color:#fff;">Radio <span style="color:#6b7681;">(3)</span><sc-if value="{{ isRadio }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; left:0; right:0; bottom:-1px; height:2px; background:#58c5ff;"></span></sc-if></div>
+        <div onClick="{{ pickMap }}" style="position:relative; padding:5px 14px; cursor:pointer; color:#9aa4b0;" style-hover="color:#fff;">Map<sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; left:0; right:0; bottom:-1px; height:2px; background:#58c5ff;"></span></sc-if></div>
+        <div onClick="{{ pickEvac }}" style="position:relative; padding:5px 14px; cursor:pointer; color:#ff6a5f;" style-hover="color:#ff9a91;">Evac <span style="color:#6b7681;">(2)</span><sc-if value="{{ isEvac }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; left:0; right:0; bottom:-1px; height:2px; background:#ff6a5f;"></span></sc-if></div>
+      </div>
+
+      <!-- tab panels -->
+      <div style="margin-top:10px; flex:1; min-height:0; overflow:hidden;">
+      <sc-if value="{{ isUpdates }}" hint-placeholder-val="{{ true }}">
+      <!-- scroll region for updates; text WRAPS within column (overflow fixed) -->
+      <div class="upd-scroll" style="height:100%; overflow-y:auto;">
+      <div style="max-width:760px; display:flex; flex-direction:column; gap:14px;">
+
+        <!-- update 1 -->
+        <div>
+          <div style="display:flex; gap:10px; align-items:baseline;"><span style="color:#58c5ff;">┌─ 2026-06-30 00:44</span><span style="color:#6b7681;">4m ago</span><span style="color:#c98bff; font-weight:700;">Evan Jacobs</span></div>
+          <div style="display:flex;"><span style="color:#283039;">│&nbsp;</span><span style="color:#e8eef4;">The fire is 10–12 acres, per Incident Command.</span></div>
+        </div>
+
+        <!-- update 2 with chips + wrapped body + image thumb -->
+        <div>
+          <div style="display:flex; gap:10px; align-items:baseline;"><span style="color:#58c5ff;">┌─ 2026-06-30 00:35</span><span style="color:#6b7681;">13m ago</span><span style="color:#c98bff; font-weight:700;">Evan Jacobs</span></div>
+          <div style="display:flex; gap:6px; margin:3px 0 3px 16px; flex-wrap:wrap;">
+            <span style="background:#2aa6c4; color:#06121a; font-weight:700; padding:0 6px; border-radius:2px;">type 3 air tankers ×2</span>
+            <span style="background:#2aa6c4; color:#06121a; font-weight:700; padding:0 6px; border-radius:2px;">type 1 helicopter</span>
+            <span style="background:#e3b341; color:#1a1306; font-weight:700; padding:0 6px; border-radius:2px;">Air Attack</span>
+          </div>
+          <div style="display:flex;"><span style="color:#283039;">│&nbsp;</span><span style="color:#e8eef4;">The fire is now 5 acres burning uphill at a slow to moderate rate of spread. A hard closure of Hwy 79 from Hwy 76 to Mesa Grande has been requested, per Incident Command. Air Attack has requested 2 additional type 3 air tankers and 1 type 1 helicopter. A current view of the fire can be seen on the attached camera.</span></div>
+          <div style="display:flex; gap:6px; margin:5px 0 0 16px;">
+            <div style="width:64px; height:40px; border:1px solid #2a323c; border-radius:2px; background-image:repeating-linear-gradient(135deg,#14181e 0 8px,#171c23 8px 16px);"></div>
+            <span style="color:#6b7681; align-self:center;">└ 📷 1 image</span>
+          </div>
+        </div>
+
+        <!-- update 3 -->
+        <div>
+          <div style="display:flex; gap:10px; align-items:baseline;"><span style="color:#58c5ff;">┌─ 2026-06-30 00:26</span><span style="color:#6b7681;">22m ago</span><span style="color:#c98bff; font-weight:700;">Evan Jacobs</span></div>
+          <div style="margin:3px 0 3px 16px;"><span style="background:#e3b341; color:#1a1306; font-weight:700; padding:0 6px; border-radius:2px;">Air Attack</span></div>
+          <div style="display:flex;"><span style="color:#283039;">│&nbsp;</span><span style="color:#e8eef4;">Structure defense is in progress and a second alarm has been requested by Incident Command. The fire is 3 acres and burning at a moderate rate of spread, per Air Attack.</span></div>
+          <div style="display:flex; gap:6px; margin:5px 0 0 16px;">
+            <div style="width:64px; height:40px; border:1px solid #2a323c; border-radius:2px; background-image:repeating-linear-gradient(135deg,#14181e 0 8px,#171c23 8px 16px);"></div>
+            <span style="color:#6b7681; align-self:center;">└ 📷 1 image</span>
+          </div>
+        </div>
+
+        <!-- update 4 -->
+        <div>
+          <div style="display:flex; gap:10px; align-items:baseline;"><span style="color:#58c5ff;">┌─ 2026-06-30 00:17</span><span style="color:#6b7681;">31m ago</span><span style="color:#c98bff; font-weight:700;">Evan Jacobs</span></div>
+          <div style="display:flex;"><span style="color:#283039;">│&nbsp;</span><span style="color:#e8eef4;">The fire is 2–3 acres burning in light flashy fuels with an immediate structure threat, per Incident Command. <span style="color:#6b7681;">| Note: Location is approximate and subject to change.</span></span></div>
+        </div>
+
+      </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isRadio }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:760px; font-size:13px; display:flex; flex-direction:column; gap:10px;">
+        <div style="color:#6b7681; font-size:12px;">RADIO FEEDS · near 33.19,−116.70</div>
+        <div>
+          <div><span style="background:#3fb950; color:#06120a; font-weight:700; padding:0 5px; border-radius:2px;">ON</span>&nbsp; <span style="color:#9aa4b0;">12471</span>&nbsp; <span style="color:#e8eef4;">CAL FIRE / San Diego — Air-to-Ground</span></div>
+          <div style="margin-left:42px; color:#58c5ff; font-size:12px;">▶ broadcastify.com/listen/feed/12471</div>
+        </div>
+        <div>
+          <div><span style="background:#3fb950; color:#06120a; font-weight:700; padding:0 5px; border-radius:2px;">ON</span>&nbsp; <span style="color:#9aa4b0;">30815</span>&nbsp; <span style="color:#e8eef4;">USFS Cleveland NF — Palomar Tac 3</span></div>
+          <div style="margin-left:42px; color:#58c5ff; font-size:12px;">▶ broadcastify.com/listen/feed/30815</div>
+        </div>
+        <div>
+          <div><span style="background:#3a424c; color:#9aa4b0; font-weight:700; padding:0 5px; border-radius:2px;">off</span>&nbsp; <span style="color:#9aa4b0;">8742</span>&nbsp; <span style="color:#9aa4b0;">San Diego County Fire — Dispatch</span></div>
+          <div style="margin-left:42px; color:#6b7681; font-size:12px;">offline · last heard 2h ago</div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; gap:16px; max-width:920px; height:320px;">
+        <div style="flex:1; border:1px solid #1c2128; border-radius:3px; background:#0a0d11; position:relative; overflow:hidden;">
+          <div style="position:absolute; left:50%; top:0; bottom:0; width:1px; background:#1c242e;"></div>
+          <div style="position:absolute; top:50%; left:0; right:0; height:1px; background:#1c242e;"></div>
+          <div style="position:absolute; left:50%; top:50%; width:230px; height:230px; transform:translate(-50%,-50%); border:1px dashed #20272f; border-radius:50%;"></div>
+          <div style="position:absolute; left:50%; top:50%; width:120px; height:120px; transform:translate(-50%,-50%); border:1px dashed #1a212a; border-radius:50%;"></div>
+          <div style="position:absolute; top:5px; left:50%; transform:translateX(-50%); color:#6b7681; font-size:11px;">N</div>
+          <div style="position:absolute; bottom:5px; left:50%; transform:translateX(-50%); color:#6b7681; font-size:11px;">S</div>
+          <div style="position:absolute; left:6px; top:50%; transform:translateY(-50%); color:#6b7681; font-size:11px;">W</div>
+          <div style="position:absolute; right:6px; top:50%; transform:translateY(-50%); color:#6b7681; font-size:11px;">E</div>
+          <div style="position:absolute; left:8px; top:6px; color:#6b7681; font-size:11px;">⌖ ≤250km · rings 125 / 250km</div>
+          <div style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:#58c5ff; font-size:14px;">◎</div>
+          <div style="position:absolute; left:calc(50% + 9px); top:calc(50% + 2px); color:#58c5ff; font-size:11px;">you</div>
+          <div style="position:absolute; left:51%; top:43%; transform:translate(-50%,-50%); color:#ff6a5f; font-weight:700;">▲</div>
+          <div style="position:absolute; left:45%; top:46%; transform:translate(-50%,-50%); color:#e3b341;">●</div>
+          <div style="position:absolute; left:72%; top:74%; transform:translate(-50%,-50%); color:#ff6a5f; font-weight:700; text-shadow:0 0 8px #ff6a5f;">◆</div>
+          <div style="position:absolute; left:calc(72% + 10px); top:74%; transform:translateY(-50%); color:#ff6a5f; font-size:11px; font-weight:700; white-space:nowrap;">Junction Fire</div>
+          <div style="position:absolute; left:66%; top:64%; transform:translate(-50%,-50%); color:#e3b341;">●</div>
+          <div style="position:absolute; left:58%; top:88%; transform:translate(-50%,-50%); color:#3fb950;">●</div>
+          <div style="position:absolute; left:62%; top:91%; transform:translate(-50%,-50%); color:#e3b341;">●</div>
+          <div style="position:absolute; left:80%; top:52%; transform:translate(-50%,-50%); color:#58c5ff;">○</div>
+        </div>
+        <div style="width:210px; font-size:12.5px; display:flex; flex-direction:column; gap:5px; color:#c9d1d9;">
+          <div style="color:#6b7681; font-size:11px; letter-spacing:.5px;">NEARBY · bearing · dist</div>
+          <div><span style="color:#ff6a5f; font-weight:700;">◆ Junction Fire</span><span style="color:#6b7681;"> · SE · 95km</span></div>
+          <div><span style="color:#ff6a5f;">▲ Harvard Fire</span><span style="color:#6b7681;"> · N · 8km</span></div>
+          <div><span style="color:#e3b341;">● Iron Fire</span><span style="color:#6b7681;"> · NW · 10km</span></div>
+          <div><span style="color:#e3b341;">● House Fire</span><span style="color:#6b7681;"> · SE · 136km</span></div>
+          <div><span style="color:#58c5ff;">○ Pecan Rec Ctr</span><span style="color:#6b7681;"> · E · 92km</span></div>
+          <div><span style="color:#3fb950;">● Sandy Fire</span><span style="color:#6b7681;"> · S · 220km</span></div>
+          <div><span style="color:#e3b341;">● Highway Fire</span><span style="color:#6b7681;"> · S · 220km</span></div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isEvac }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:760px; font-size:13.5px; display:flex; flex-direction:column; gap:14px;">
+        <div>
+          <div style="color:#ff6a5f; font-weight:700;">⛔ EVACUATION ORDERS</div>
+          <div style="margin-left:16px; color:#e8eef4;">Zones <span style="font-weight:700;">SDC-1471, SDC-1472</span> — mandatory, effective 2026-06-30 00:30. Leave now; use Hwy 79 north toward Santa Ysabel.</div>
+        </div>
+        <div>
+          <div style="color:#e3b341; font-weight:700;">⚠ EVACUATION WARNINGS</div>
+          <div style="margin-left:16px; color:#e8eef4;">Zones <span style="font-weight:700;">SDC-1480, SDC-1481</span> — be ready to leave at a moment's notice.</div>
+        </div>
+        <div style="color:#6b7681; font-size:12px;">Source: CAL FIRE / San Diego County OES · updated 4m ago · genasys zones</div>
+      </div>
+      </sc-if>
+      </div><!-- /tab panels -->
+
+      <!-- keybind footer -->
+      <div style="border-top:1px solid #1c2128; margin:6px -16px 0; padding:6px 16px 0; color:#6b7681; font-size:12px;">
+        <span style="color:#9aa4b0;">NORMAL</span>&nbsp;&nbsp; j/k move · / filter · ⏎ load · r refresh · <span style="color:#e3b341;">L</span> live · <span style="color:#e3b341;">i</span> image · t sort · ? help · q quit
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 'updates' };
+  renderVals() {
+    const tab = this.state.tab;
+    const pick = (t) => () => this.setState({ tab: t });
+    return {
+      isUpdates: tab === 'updates',
+      isRadio: tab === 'radio',
+      isMap: tab === 'map',
+      isEvac: tab === 'evac',
+      pickUpdates: pick('updates'),
+      pickRadio: pick('radio'),
+      pickMap: pick('map'),
+      pickEvac: pick('evac'),
+    };
+  }
+}
+</script>
+</body>
+</html>

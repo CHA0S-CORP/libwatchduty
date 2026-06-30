@@ -1,0 +1,9 @@
+{
+  "name": "libwatchduty-vendor-mapscii",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local checkout of mapscii bundled with libwatchduty.",
+  "dependencies": {
+    "mapscii": "^0.3.1"
+  }
+}

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "libwatchduty"
+version = "0.1.0"
+description = "Unofficial Python client for app.watchduty.org fire/incident data"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Max" }]
+dependencies = ["requests>=2.31", "tqdm>=4.65"]
+
+[project.optional-dependencies]
+# Pure-Python VT100 emulator used by the TUI to embed mapscii inside the
+# Map-tab rectangle. The dashboard still runs without it (mapscii falls
+# back to fullscreen via `m`); install if you want the inline map.
+tui = ["pyte>=0.8"]
+test = ["pytest>=7", "pyte>=0.8"]
+
+[project.scripts]
+watchduty = "libwatchduty.cli:main"
+watchduty-install-mapscii = "libwatchduty.install_mapscii:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/libwatchduty"]
+
+# Ship the in-repo mapscii checkout (Node app, ~3 MB) as wheel data so
+# the bundled binary is available after `pip install`. The TUI prefers
+# vendor/mapscii/node_modules/.bin/mapscii before falling back to $PATH.
+[tool.hatch.build.targets.wheel.shared-data]
+"vendor/mapscii" = "share/libwatchduty/vendor/mapscii"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src",
+  "vendor",
+  "README.md",
+  "pyproject.toml",
+]
