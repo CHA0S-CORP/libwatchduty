@@ -19,6 +19,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.1.1] - 2026-06-30
+
+### Added
+
+- README hero screenshots: `docs/screenshots/update-view.jpg` and
+  `docs/screenshots/map-view.jpg`.
+- `docs/QUICKSTART.md` now opens with a **virtualenv** section
+  (venv / `pipx` / `uv tool`) so users hit PEP 668-blocked system
+  Pythons less often.
+- Dedicated **Install the mapscii Node binary** subsection in the
+  Quick Start covering the bundled wheel data, the
+  `watchduty-install-mapscii` fallback, and per-platform Node install
+  hints.
+
+### Changed
+
+- Quick Start prefers `pip install 'libwatchduty[tui]'` quoting style
+  so zsh doesn't mis-parse the extras bracket.
+- README links to the new Quick Start; org references updated to
+  `CHA0S-CORP`.
+
 ## [0.1.0] - 2026-06-29
 
 ### Added
