@@ -30,7 +30,7 @@ RUN apt-get update \
 
 # Pin to a published version so the image is reproducible.
 # Bump with each release.
-ARG LIBWATCHDUTY_VERSION=0.1.3
+ARG LIBWATCHDUTY_VERSION=0.1.4
 RUN pip install --no-cache-dir "libwatchduty[tui]==${LIBWATCHDUTY_VERSION}"
 
 # A non-root user for safety; the TUI doesn't need root.

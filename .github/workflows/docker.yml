@@ -32,6 +32,23 @@ jobs:
           v=$(grep -E '^version = ' pyproject.toml | head -1 | cut -d'"' -f2)
           echo "version=$v" >> "$GITHUB_OUTPUT"
 
+      # The image installs libwatchduty from PyPI, but publish.yml runs
+      # concurrently on the same tag push. Wait for the version to land on
+      # PyPI so the build doesn't race ahead and fail on a missing release.
+      - name: Wait for version on PyPI
+        run: |
+          v="${{ steps.pkgver.outputs.version }}"
+          for i in $(seq 1 30); do
+            if curl -sf "https://pypi.org/pypi/libwatchduty/${v}/json" >/dev/null; then
+              echo "libwatchduty ${v} available on PyPI"
+              exit 0
+            fi
+            echo "waiting for libwatchduty ${v} on PyPI ($i/30)..."
+            sleep 10
+          done
+          echo "libwatchduty ${v} did not appear on PyPI in time" >&2
+          exit 1
+
       - name: Derive metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
