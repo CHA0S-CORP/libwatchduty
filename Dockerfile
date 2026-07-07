@@ -19,10 +19,12 @@ FROM python:${PYTHON_VERSION}-slim
 
 # Node.js — the bundled mapscii (shipped as wheel data under
 # share/libwatchduty/vendor/mapscii/) is a Node app and needs `node`
-# on $PATH. Slim Debian's Node is fine for mapscii's runtime needs.
+# on $PATH. npm is needed at build time to repopulate mapscii's
+# dependencies (see the mapscii RUN below); it is left installed.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        nodejs \
+       npm \
        ca-certificates \
        tini \
     && apt-get clean \
@@ -32,6 +34,20 @@ RUN apt-get update \
 # Bump with each release.
 ARG LIBWATCHDUTY_VERSION=0.1.4
 RUN pip install --no-cache-dir "libwatchduty[tui]==${LIBWATCHDUTY_VERSION}"
+
+# Make the bundled mapscii actually runnable. The wheel ships mapscii's
+# node_modules as static data, but the packaging flattens npm's bin
+# symlinks and drops dependency files (e.g. node-fetch/lib/), so the
+# copy pip installs cannot launch. Reinstall the dependency tree from
+# the pinned lockfile, preserving the libwatchduty patch to main.js
+# (env-var recentering via MAPSCII_LAT/LNG/ZOOM that upstream lacks).
+RUN VENDOR="$(python -c 'import sys,os; print(os.path.join(sys.prefix, "share", "libwatchduty", "vendor", "mapscii"))')" \
+    && cp "${VENDOR}/node_modules/mapscii/main.js" /tmp/mapscii-main.js \
+    && cd "${VENDOR}" \
+    && npm ci --omit=dev --no-audit --no-fund \
+    && cp /tmp/mapscii-main.js "${VENDOR}/node_modules/mapscii/main.js" \
+    && rm -f /tmp/mapscii-main.js \
+    && npm cache clean --force
 
 # A non-root user for safety; the TUI doesn't need root.
 RUN useradd --create-home --uid 10001 watchduty
