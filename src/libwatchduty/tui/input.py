@@ -783,7 +783,8 @@ def _handle_key(
             tp = os.environ.get("TERM_PROGRAM", "")
             _set_status(state,
                         f"terminal lacks inline images "
-                        f"(TERM={term} TERM_PROGRAM={tp}); needs kitty/ghostty/iTerm2",
+                        f"(TERM={term} TERM_PROGRAM={tp}); needs kitty/ghostty/"
+                        f"iTerm2/VS Code, or set WATCHDUTY_INLINE_IMAGES=iterm2",
                         is_error=True)
             return True
         if not rows:

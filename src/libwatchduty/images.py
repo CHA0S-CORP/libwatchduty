@@ -2,14 +2,27 @@
 
 Supports two protocols, auto-selected per stream:
 - Kitty graphics protocol (kitty, ghostty, WezTerm with kitty mode)
-- iTerm2 inline images protocol (iTerm.app, WezTerm with iterm mode)
+- iTerm2 inline images protocol (iTerm.app, WezTerm with iterm mode, and
+  the VS Code integrated terminal with ``terminal.integrated.enableImages``)
 
 Detection requires the target stream to be a TTY. Returns ``None`` / empty
 string on unsupported terminals so callers can fall back to OSC 8.
 
+Auto-detection keys off environment variables the terminal sets. That
+breaks when those vars don't reach the process — most notably inside a
+container, where ``docker run`` does not forward the host's
+``TERM_PROGRAM``. Set ``WATCHDUTY_INLINE_IMAGES`` to force a protocol
+regardless of detection:
+
+    WATCHDUTY_INLINE_IMAGES=iterm2   # VS Code terminal, iTerm2, WezTerm
+    WATCHDUTY_INLINE_IMAGES=kitty    # kitty, ghostty
+    WATCHDUTY_INLINE_IMAGES=off      # disable inline images entirely
+    WATCHDUTY_INLINE_IMAGES=auto     # (default) sniff the environment
+
 References:
 - https://sw.kovidgoyal.net/kitty/graphics-protocol/
 - https://iterm2.com/documentation-images.html
+- https://code.visualstudio.com/docs/terminal/advanced#_image-support
 """
 
 from __future__ import annotations
@@ -22,21 +35,47 @@ from typing import IO, Any
 KITTY_CHUNK = 4096  # base64 chars per payload chunk per the protocol
 
 
+def _forced_protocol() -> str | None:
+    """Return the protocol pinned via ``WATCHDUTY_INLINE_IMAGES``, if any.
+
+    One of ``"iterm2"``, ``"kitty"``, ``"off"``, or ``None`` (auto-detect).
+    Read fresh each call so the override responds to late env changes.
+    """
+    v = os.environ.get("WATCHDUTY_INLINE_IMAGES", "").strip().lower()
+    if v in ("iterm2", "iterm", "iterm.app", "vscode"):
+        return "iterm2"
+    if v in ("kitty", "ghostty"):
+        return "kitty"
+    if v in ("off", "none", "no", "0", "false"):
+        return "off"
+    return None
+
+
+def _isatty(stream: IO | None) -> bool:
+    if stream is None:
+        stream = sys.stdout
+    try:
+        return bool(stream.isatty())
+    except (AttributeError, ValueError):
+        return False
+
+
 def supports_kitty(stream: IO | None = None) -> bool:
     """Best-effort check that ``stream`` is a kitty (or ghostty) terminal.
 
     True iff stream isatty AND ``$TERM`` looks like kitty OR ``$TERM_PROGRAM``
-    is ``"ghostty"`` (ghostty implements the protocol). False if ``NO_COLOR``
-    is set, because the user asked for plain output.
+    is ``"ghostty"`` (ghostty implements the protocol). ``WATCHDUTY_INLINE_IMAGES``
+    overrides detection: ``kitty`` forces True, ``iterm2``/``off`` force False.
+    False if ``NO_COLOR`` is set, because the user asked for plain output.
     """
-    if stream is None:
-        stream = sys.stdout
-    if "NO_COLOR" in os.environ:
+    forced = _forced_protocol()
+    if forced in ("off", "iterm2"):
         return False
-    try:
-        if not stream.isatty():
-            return False
-    except (AttributeError, ValueError):
+    if not _isatty(stream):
+        return False
+    if forced == "kitty":
+        return True
+    if "NO_COLOR" in os.environ:
         return False
     term = os.environ.get("TERM", "")
     if "kitty" in term:
@@ -96,22 +135,24 @@ def render_kitty(
 
 
 def supports_iterm2(stream: IO | None = None) -> bool:
-    """Best-effort check that ``stream`` is an iTerm2 (or compatible) terminal.
+    """Best-effort check that ``stream`` speaks the iTerm2 inline-image protocol.
 
-    True iff stream isatty AND TERM_PROGRAM == 'iTerm.app' OR
-    LC_TERMINAL == 'iTerm2' (the latter is what tmux preserves). False when
-    NO_COLOR is set.
+    True iff stream isatty AND TERM_PROGRAM is 'iTerm.app' or 'vscode' (the
+    VS Code integrated terminal renders iTerm2 escapes via its image addon),
+    OR LC_TERMINAL == 'iTerm2' (what tmux preserves). ``WATCHDUTY_INLINE_IMAGES``
+    overrides detection: ``iterm2`` forces True, ``kitty``/``off`` force False.
+    False when NO_COLOR is set.
     """
-    if stream is None:
-        stream = sys.stdout
+    forced = _forced_protocol()
+    if forced in ("off", "kitty"):
+        return False
+    if not _isatty(stream):
+        return False
+    if forced == "iterm2":
+        return True
     if "NO_COLOR" in os.environ:
         return False
-    try:
-        if not stream.isatty():
-            return False
-    except (AttributeError, ValueError):
-        return False
-    if os.environ.get("TERM_PROGRAM") == "iTerm.app":
+    if os.environ.get("TERM_PROGRAM") in ("iTerm.app", "vscode"):
         return True
     if os.environ.get("LC_TERMINAL") == "iTerm2":
         return True

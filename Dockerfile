@@ -10,6 +10,17 @@
 #     -e WATCHDUTY_HOME=33.92,-117.24 \
 #     libwatchduty:latest
 #
+# Inline camera images: the TUI auto-detects kitty/ghostty/iTerm2/VS Code,
+# but `docker run` does not forward the host's $TERM_PROGRAM into the
+# container, so detection can't see it. Force the protocol explicitly.
+# In the VS Code integrated terminal (enable terminal.integrated.enableImages),
+# it speaks the iTerm2 protocol:
+#   docker run --rm -it \
+#     -e WATCHDUTY_INLINE_IMAGES=iterm2 \
+#     -e WATCHDUTY_HOME=33.92,-117.24 \
+#     libwatchduty:latest
+# Use WATCHDUTY_INLINE_IMAGES=kitty for a kitty/ghostty host terminal.
+#
 # Run a one-shot CLI subcommand:
 #   docker run --rm libwatchduty:latest fires --active
 #   docker run --rm libwatchduty:latest event 105316
@@ -32,7 +43,7 @@ RUN apt-get update \
 
 # Pin to a published version so the image is reproducible.
 # Bump with each release.
-ARG LIBWATCHDUTY_VERSION=0.1.4
+ARG LIBWATCHDUTY_VERSION=0.1.5
 RUN pip install --no-cache-dir "libwatchduty[tui]==${LIBWATCHDUTY_VERSION}"
 
 # Make the bundled mapscii actually runnable. The wheel ships mapscii's
