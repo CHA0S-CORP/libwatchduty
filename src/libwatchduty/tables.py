@@ -6,12 +6,11 @@ Width math strips ANSI escapes; color is opt-in and TTY-aware via colors.use_col
 
 from __future__ import annotations
 
-import os
 import re
 import shutil
 import sys
-from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, Optional, Sequence, Union
+from dataclasses import dataclass
+from typing import Any, Callable, Optional, Sequence, Union
 
 from .colors import (
     BAR_BG,
@@ -179,7 +178,7 @@ def render_table(
     for row in rows:
         cells: list[str] = []
         values: list[Any] = []
-        for c, g in zip(columns, getters):
+        for g in getters:
             try:
                 v = g(row)
             except Exception:

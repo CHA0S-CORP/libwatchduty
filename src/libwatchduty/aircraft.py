@@ -17,7 +17,7 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 CACHE_TTL_SECONDS = 24 * 60 * 60
 CACHE_PATH = Path(
@@ -86,7 +86,9 @@ _CHIP_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     ("aircraft", re.compile(r"\bT-?\d{1,4}\b", re.I), "tanker"),
     ("aircraft", re.compile(r"\b(?:Air[\s-]?Attack|AA)[\s-]?\d{1,4}\b", re.I), "air_attack"),
     ("aircraft", re.compile(r"\b(?:Helo|Helicopter|H)[\s-]?\d{1,4}\b", re.I), "helo"),
-    ("aircraft", re.compile(r"\bN\d{1,4}[A-Z]{0,2}\b"), "tail"),
+    # Require >=3 digits or a letter suffix, and no leading zero, so short
+    # non-registration tokens like "N95" (respirator masks) don't match.
+    ("aircraft", re.compile(r"\bN(?:[1-9]\d{2,4}[A-Z]{0,2}|[1-9]\d{0,3}[A-Z]{1,2})\b"), "tail"),
     ("aircraft", re.compile(r"\bC-?130\b", re.I), "c130"),
     ("aircraft", re.compile(r"\bMD-?87\b", re.I), "md87"),
     ("aircraft", re.compile(r"\bDC-?10\b", re.I), "dc10"),

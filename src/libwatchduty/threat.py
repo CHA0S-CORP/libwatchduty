@@ -254,12 +254,16 @@ def _isi_norm(
                 t_f = _safe_float(wind.get("temperature_f"))
                 if t_f is not None:
                     temperature_c = (t_f - 32.0) * 5.0 / 9.0
+        # NOTE: check keys with `is not None`, not `or` — RH 0 (bone-dry
+        # air, peak fire danger) and precip 0.0 are valid falsy readings.
         if humidity is None:
-            humidity = _safe_float(wind.get("humidity") or wind.get("rh"))
+            humidity = _safe_float(wind.get("humidity"))
+            if humidity is None:
+                humidity = _safe_float(wind.get("rh"))
         if precip_mm is None:
-            precip_mm = _safe_float(
-                wind.get("precip_mm") or wind.get("precipitation_mm")
-            )
+            precip_mm = _safe_float(wind.get("precip_mm"))
+            if precip_mm is None:
+                precip_mm = _safe_float(wind.get("precipitation_mm"))
 
     ffmc = _ffmc_cold_start(temperature_c, humidity, precip_mm)
     if w_kph is None or ffmc is None:

@@ -1,9 +1,10 @@
 """Download still frames from Watch Duty wildfire-detection cameras.
 
-Image URLs returned by /cameras_gis/realtime point at third-party hosts
-(alertwest.com, alertcalifornia.org, etc). This module GETs them through
-the configured WatchDutyClient session, writes them to disk with a
-deterministic name, and supports a simple timelapse capture loop.
+Camera rows come from the /cameras/ catalog (client.list_cameras), whose
+``image_url`` fields point at third-party hosts (alertwest.com,
+alertcalifornia.org, etc). This module GETs them through the configured
+WatchDutyClient session, writes them to disk with a deterministic name,
+and supports a simple timelapse capture loop.
 """
 
 from __future__ import annotations
@@ -15,6 +16,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator
+
+from ._geo import haversine_km
 
 DEFAULT_IMAGE_FIELD = "image_url"
 DEFAULT_ID_FIELD = "id"
@@ -84,17 +87,13 @@ def _filter_cameras(
         return [c for c in cameras if str(c.get(id_field)) in wanted]
     if lat is None or lng is None:
         return cameras
-    from math import asin, cos, radians, sin, sqrt
 
     def km(c: dict) -> float:
         ll = c.get("latlng") or {}
         a, b = ll.get("lat"), ll.get("lng")
         if not isinstance(a, (int, float)) or not isinstance(b, (int, float)):
             return float("inf")
-        dlat = radians(a - lat)
-        dlng = radians(b - lng)
-        h = sin(dlat / 2) ** 2 + cos(radians(lat)) * cos(radians(a)) * sin(dlng / 2) ** 2
-        return 2 * 6371.0088 * asin(sqrt(h))
+        return haversine_km((lat, lng), (a, b))
 
     with_dist = sorted(((km(c), c) for c in cameras), key=lambda x: x[0])
     if radius_km is None:

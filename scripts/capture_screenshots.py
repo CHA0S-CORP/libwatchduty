@@ -37,7 +37,10 @@ import time
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import TYPE_CHECKING, Iterable
+
+if TYPE_CHECKING:
+    import pyte
 
 # Make sure ``src/`` is importable when running this script straight out
 # of a source checkout (no install). We append rather than insert so an
@@ -558,9 +561,9 @@ def _screen_to_png(screen, path: Path) -> bool:
     # Cell metrics. Use the bounding box of a wide glyph for the width
     # so most monospaced fonts produce a tight grid.
     try:
-        l, t, r, b = font.getbbox("M")
-        cw = max(1, r - l)
-        ch = max(1, b - t)
+        left, top, r, b = font.getbbox("M")
+        cw = max(1, r - left)
+        ch = max(1, b - top)
     except AttributeError:  # very old Pillow
         cw, ch = font.getsize("M")  # type: ignore[attr-defined]
 

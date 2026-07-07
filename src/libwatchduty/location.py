@@ -129,17 +129,25 @@ def _try_corelocation(timeout: float) -> Optional[tuple[float, float, str]]:
         ["CoreLocationCLI", "-once", "YES", "-format", "%latitude,%longitude"],
         ["CoreLocationCLI", "-once", "YES"],
     )
+    # `timeout` is the budget for the WHOLE step — split it across the two
+    # invocation forms so we can't spend 2x the caller's allowance.
+    deadline = time.monotonic() + timeout
     for argv in invocations:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            return None
         try:
             proc = subprocess.run(
                 argv,
                 capture_output=True,
                 text=True,
-                timeout=timeout,
+                timeout=left,
                 check=False,
             )
-        except (subprocess.TimeoutExpired, OSError):
-            return None
+        except subprocess.TimeoutExpired:
+            return None   # budget gone — don't start another invocation
+        except OSError:
+            continue      # spawn failure — the other form may still work
         if proc.returncode != 0:
             continue
         first = (proc.stdout or "").strip().splitlines()[:1]
@@ -165,15 +173,10 @@ def _http_get_json(url: str, timeout: float) -> Optional[dict]:
     except (urllib.error.URLError, urllib.error.HTTPError, socket.timeout, OSError):
         return None
     if not raw or len(raw) > _MAX_BODY_BYTES:
-        # Empty body or suspiciously large -- treat as failure rather than
-        # blindly parse a truncated payload.
-        if not raw or len(raw) > _MAX_BODY_BYTES:
-            try:
-                # If it's just barely over, still try the first 8 KiB; many
-                # endpoints emit small bodies, so the >cap case is unusual.
-                raw = raw[:_MAX_BODY_BYTES]
-            except Exception:
-                return None
+        # Empty body, or larger than the cap (we read cap+1 bytes, so any
+        # overrun means truncation) — treat as failure rather than parse a
+        # truncated payload.
+        return None
     try:
         data = json.loads(raw.decode("utf-8", errors="replace"))
     except (json.JSONDecodeError, UnicodeDecodeError):

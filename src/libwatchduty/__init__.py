@@ -12,4 +12,4 @@ __all__ = [
     "ThreatFactors",
     "compute_threat",
 ]
-__version__ = "0.1.0"
+__version__ = "0.1.4"

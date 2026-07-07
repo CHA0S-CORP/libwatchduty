@@ -58,7 +58,6 @@ from __future__ import annotations
 
 import argparse
 import getpass
-import html
 import json
 import os
 import sys
@@ -66,6 +65,8 @@ from typing import Any
 
 from . import colors as C
 from . import tables as T
+from ._geo import haversine_km
+from ._text import format_age_relative, strip_html
 from .client import GEO_EVENT_TYPES, WatchDutyClient, WatchDutyError
 from .location import detect_location
 from .tui import run as run_tui
@@ -104,6 +105,17 @@ def _nonneg_float(s: str) -> float:
     return v
 
 
+def _positive_float(s: str) -> float:
+    """argparse type: float > 0."""
+    try:
+        v = float(s)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(f"expected number, got {s!r}") from e
+    if v <= 0:
+        raise argparse.ArgumentTypeError(f"must be > 0, got {v}")
+    return v
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the watchduty CLI.
 
@@ -134,6 +146,11 @@ def main(argv: list[str] | None = None) -> int:
     # Default subcommand is `tui` — bare `watchduty` launches the dashboard.
     sub = p.add_subparsers(dest="cmd", required=False)
 
+    # Shared --raw/--json pair, inherited by every list-style subcommand.
+    raw_json = argparse.ArgumentParser(add_help=False)
+    raw_json.add_argument("--raw", action="store_true", help="print full JSON")
+    raw_json.add_argument("--json", action="store_true", help="alias for --raw")
+
     fires = sub.add_parser(
         "fires",
         help="list geo events with recent updates",
@@ -142,14 +159,13 @@ def main(argv: list[str] | None = None) -> int:
             "around a point. Example: "
             "watchduty fires --near 37.77,-122.41 --within 50 --unit mi"
         ),
+        parents=[raw_json],
     )
     fires.add_argument(
         "--type", default=",".join(GEO_EVENT_TYPES),
         help="comma-separated geo event types",
     )
     fires.add_argument("--active", action="store_true", help="active fires only")
-    fires.add_argument("--raw", action="store_true", help="print full JSON")
-    fires.add_argument("--json", action="store_true", help="alias for --raw")
     fires.add_argument(
         "--updates", type=_nonneg_int, default=1, metavar="N",
         help="recent updates to show per fire (default 1, 0 to skip)",
@@ -169,7 +185,7 @@ def main(argv: list[str] | None = None) -> int:
              "(env: WATCHDUTY_HOME; also accepts 'auto')",
     )
     fires.add_argument(
-        "--within", type=_nonneg_float, default=100.0, metavar="DIST",
+        "--within", type=_positive_float, default=100.0, metavar="DIST",
         help="max distance from --near in --unit (default 100)",
     )
     fires.add_argument(
@@ -177,42 +193,36 @@ def main(argv: list[str] | None = None) -> int:
         help="distance unit for --within and display",
     )
 
-    ev = sub.add_parser("event", help="get one geo event as a labelled block")
+    ev = sub.add_parser(
+        "event", help="get one geo event as a labelled block", parents=[raw_json],
+    )
     ev.add_argument("id", type=int)
-    ev.add_argument("--raw", action="store_true", help="print full JSON")
-    ev.add_argument("--json", action="store_true", help="alias for --raw")
 
-    rep = sub.add_parser("reports", help="approved reports for a geo event")
+    rep = sub.add_parser(
+        "reports", help="approved reports for a geo event", parents=[raw_json],
+    )
     rep.add_argument("id", type=int)
-    rep.add_argument("--raw", action="store_true", help="print full JSON")
-    rep.add_argument("--json", action="store_true", help="alias for --raw")
 
-    places_p = sub.add_parser("places", help="user saved places (requires --token)")
-    places_p.add_argument(
-        "--raw", action="store_true", help="print full JSON",
+    sub.add_parser(
+        "places", help="user saved places (requires --token)", parents=[raw_json],
     )
-    places_p.add_argument(
-        "--json", action="store_true", help="alias for --raw",
-    )
-    me_p = sub.add_parser("me", help="current user (requires --token)")
-    me_p.add_argument(
-        "--raw", action="store_true", help="print full JSON",
-    )
-    me_p.add_argument(
-        "--json", action="store_true", help="alias for --raw",
+    sub.add_parser(
+        "me", help="current user (requires --token)", parents=[raw_json],
     )
 
-    rad = sub.add_parser("radio", help="broadcastify scanner feeds near a point or fire")
+    rad = sub.add_parser(
+        "radio", help="broadcastify scanner feeds near a point or fire",
+        parents=[raw_json],
+    )
     grad = rad.add_mutually_exclusive_group(required=True)
     grad.add_argument("--latlng", help="lat,lng pair")
     grad.add_argument("--fire", type=int, help="geo_event id")
-    rad.add_argument("--raw", action="store_true", help="print full JSON")
-    rad.add_argument("--json", action="store_true", help="alias for --raw")
 
     cam = sub.add_parser(
         "cameras",
         help="wildfire-detection cameras near a point or fire",
         description="Omit --latlng, --fire and --bbox to list all cameras.",
+        parents=[raw_json],
     )
     gcam = cam.add_mutually_exclusive_group()
     gcam.add_argument("--latlng", help="lat,lng pair")
@@ -225,12 +235,11 @@ def main(argv: list[str] | None = None) -> int:
         "--limit", type=_nonneg_int, default=50,
         help="max cameras to print (0 = all, default 50)",
     )
-    cam.add_argument("--raw", action="store_true", help="print full JSON")
-    cam.add_argument("--json", action="store_true", help="alias for --raw")
 
     fmod = sub.add_parser(
         "fires-modified",
         help="geo events modified since a given date/datetime (YYYY-MM-DD or ISO-8601)",
+        parents=[raw_json],
     )
     fmod.add_argument(
         "since", metavar="MODIFIED_SINCE",
@@ -278,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
         help="auto-refresh interval in seconds (default 60; minimum 30; 0 = manual)",
     )
     tui_p.add_argument(
-        "--within", type=_nonneg_float, default=250.0, metavar="DIST",
+        "--within", type=_positive_float, default=250.0, metavar="DIST",
         help="max distance from --near in km (default 250)",
     )
 
@@ -357,7 +366,10 @@ def main(argv: list[str] | None = None) -> int:
         line = sys.stdin.readline().strip()
         if line:
             args.token = line
-    elif args.token and "--token" in (argv if argv is not None else sys.argv[1:]):
+    elif args.token and any(
+        a == "--token" or a.startswith("--token=")
+        for a in (argv if argv is not None else sys.argv[1:])
+    ):
         # WHY: tokens on argv leak via `ps` listings and shell history.
         print(
             "note: --token on command line is visible to `ps`; prefer "
@@ -387,13 +399,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.cmd == "cameras":
             return _cmd_cameras(c, args)
         if args.cmd == "fires-modified":
-            types = [t.strip() for t in args.type.split(",") if t.strip()]
-            data = c.list_geo_events_modified_since(args.since, types=types)
-            json.dump(data, sys.stdout, indent=2)
-            print()
-            if not data:
-                print("note: no events modified since cutoff", file=sys.stderr)
-            return 0
+            return _cmd_fires_modified(c, args)
         if args.cmd == "bundle":
             return _cmd_bundle(c, args)
         if args.cmd == "login":
@@ -535,7 +541,7 @@ def _cmd_fires(c: WatchDutyClient, args: argparse.Namespace) -> int:
             if e.get("lat") is None or e.get("lng") is None:
                 skipped_no_coords += 1
                 continue
-            dkm = _haversine_km(home, (e["lat"], e["lng"]))
+            dkm = haversine_km(home, (e["lat"], e["lng"]))
             if dkm <= limit_km:
                 annotated.append((dkm, e))
         annotated.sort(key=lambda x: x[0])
@@ -635,45 +641,11 @@ def _cmd_reports(c: WatchDutyClient, args: argparse.Namespace) -> int:
     return 0
 
 
-def _format_age_relative(iso: str | None) -> str:
-    """Return a compact relative-age string like ``"3h ago"``.
-
-    Accepts ISO-8601 with optional trailing Z. Returns ``""`` on parse error
-    or when the timestamp is in the future by more than a few seconds.
-    """
-    if not iso:
-        return ""
-    try:
-        from datetime import datetime, timezone
-        s = iso.rstrip("Z")
-        try:
-            dt = datetime.fromisoformat(s)
-        except ValueError:
-            dt = datetime.strptime(s[:19], "%Y-%m-%dT%H:%M:%S")
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        delta = (datetime.now(timezone.utc) - dt).total_seconds()
-    except Exception:
-        return ""
-    if delta < -5:
-        return ""
-    s_ = max(0, int(delta))
-    if s_ < 60:
-        return f"{s_}s ago"
-    if s_ < 3600:
-        return f"{s_ // 60}m ago"
-    if s_ < 86400:
-        return f"{s_ // 3600}h ago"
-    if s_ < 86400 * 30:
-        return f"{s_ // 86400}d ago"
-    return f"{s_ // 2592000}mo ago"
-
-
 def _reports_columns() -> list[T.Column]:
     def _when(row):
         s = row.get("date_created") or ""
         abs_ = s[:16].replace("T", " ")
-        rel = _format_age_relative(s)
+        rel = format_age_relative(s)
         return f"{abs_} · {rel}" if rel else abs_
 
     def _reporter(row):
@@ -687,7 +659,7 @@ def _reports_columns() -> list[T.Column]:
         return "-"
 
     def _msg(row):
-        s = _strip_html(row.get("message") or "")
+        s = strip_html(row.get("message") or "", para_sep=" ¶ ")
         return s if len(s) <= 120 else s[:117] + "..."
 
     return [
@@ -900,6 +872,36 @@ def _cameras_columns() -> list[T.Column]:
     ]
 
 
+def _cmd_fires_modified(c: WatchDutyClient, args: argparse.Namespace) -> int:
+    """Handle the `fires-modified` subcommand."""
+    types = [t.strip() for t in args.type.split(",") if t.strip()]
+    data = c.list_geo_events_modified_since(args.since, types=types)
+    if args.raw or args.json:
+        json.dump(data, sys.stdout, indent=2)
+        print()
+        if not data:
+            print("note: no events modified since cutoff", file=sys.stderr)
+        return 0
+
+    def _modified(row):
+        s = row.get("date_modified") or ""
+        abs_ = s[:16].replace("T", " ")
+        rel = format_age_relative(s)
+        return f"{abs_} · {rel}" if rel else abs_
+
+    cols = [
+        T.Column("ID", "id", align="right", width=7, color=_color_fire_id, truncate=False),
+        T.Column("Type", "geo_event_type", align="left", width=10, color=_color_type_tag),
+        T.Column("Name", "name", align="left", width=36, color=_color_fire_name),
+        T.Column("Modified", _modified, align="left", width=26, color=_color_timestamp, truncate=False),
+        T.Column("Address", "address", align="left", width=40, color=_color_address),
+    ]
+    print(T.render_table(data or [], cols))
+    if not data:
+        print("note: no events modified since cutoff", file=sys.stderr)
+    return 0
+
+
 def _cmd_bundle(c: WatchDutyClient, args: argparse.Namespace) -> int:
     """Handle the `bundle` subcommand."""
     bundle = c.get_fire_bundle(args.id)
@@ -989,7 +991,8 @@ def _cmd_login(c: WatchDutyClient, args: argparse.Namespace) -> int:
     if password is None or password == "-":
         password = getpass.getpass("Password: ")
     r = c.login(args.username, password) or {}
-    tok = r.get("key") or r.get("token")
+    # Same key set the client accepts in login().
+    tok = r.get("key") or r.get("token") or r.get("auth_token")
     if not tok:
         # Preserve sentinel error output for callers grepping stderr.
         rows = [{"label": "error", "value": "login response has no key/token"}]
@@ -1146,13 +1149,6 @@ def _cmd_stills(c: WatchDutyClient, args: argparse.Namespace) -> int:
 
     if sub == "capture":
         near = _parse_latlng(args.near) if args.near else (None, None)
-        try:
-            from tqdm import tqdm  # type: ignore
-            bar = tqdm(desc="stills", unit="cam", leave=False,
-                       disable=not sys.stderr.isatty())
-        except Exception:
-            bar = None
-        # Patch in tqdm progress by wrapping capture_cameras's print path.
         written = S.capture_cameras(
             c,
             out_dir=args.out,
@@ -1161,9 +1157,6 @@ def _cmd_stills(c: WatchDutyClient, args: argparse.Namespace) -> int:
             radius_km=args.radius if args.near else None,
             limit=args.limit or None,
         )
-        if bar is not None:
-            bar.update(len(written))
-            bar.close()
         print(f"wrote {len(written)} stills under {args.out}", file=sys.stderr)
         for p in written:
             print(p)
@@ -1203,7 +1196,9 @@ def _cmd_aircraft(c: WatchDutyClient, args: argparse.Namespace) -> int:
     sub = args.air_cmd
     catalog = A.load_catalog(c, force_refresh=getattr(args, "refresh", False))
     if sub == "list":
-        rows = A.lookup(catalog, args.search, limit=args.limit) if args.search else catalog[: args.limit]
+        # --limit 0 means "all", matching the cameras subcommand.
+        limit = args.limit or len(catalog)
+        rows = A.lookup(catalog, args.search, limit=limit) if args.search else catalog[:limit]
         if args.json:
             json.dump(rows, sys.stdout, indent=2)
             print()
@@ -1214,7 +1209,9 @@ def _cmd_aircraft(c: WatchDutyClient, args: argparse.Namespace) -> int:
             T.Column("Callsign", lambda r: r.get("short_callsign") or "", "left", 12, True, None),
             T.Column("Type", lambda r: r.get("type") or "", "left", 16, True, None),
             T.Column("Model", lambda r: r.get("model") or "", "left", 18, True, None),
-            T.Column("Name", lambda r: r.get("name") or "", "left", 0, True, None),
+            # width=0 + truncate=True renders an empty column; natural
+            # width needs truncate=False.
+            T.Column("Name", lambda r: r.get("name") or "", "left", 0, False, None),
         ]
         sys.stdout.write(T.render_table(rows, cols) + "\n")
         print(f"({len(rows)} match{'es' if len(rows)!=1 else ''}"
@@ -1322,7 +1319,7 @@ def _event_kv_items(data: dict) -> list[tuple[str, Any]]:
         ):
             v = sub.get(src_key)
             if v:
-                items.append((label, C.paint(_strip_html(v), C.EVAC_ORDER if "orders" in src_key else C.EVAC_WARN)))
+                items.append((label, C.paint(strip_html(v, para_sep=" ¶ "), C.EVAC_ORDER if "orders" in src_key else C.EVAC_WARN)))
         links = sub.get("links")
         if isinstance(links, list) and links:
             link_lines = []
@@ -1436,22 +1433,6 @@ def _parse_latlng(s: str) -> tuple[float, float]:
     return lat, lng
 
 
-def _haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:
-    """Great-circle distance between two ``(lat, lng)`` points in kilometres.
-
-    Uses the haversine formula with Earth radius 6371.0088 km. Inputs are
-    decimal degrees; the result is a non-negative float.
-    """
-    from math import asin, cos, radians, sin, sqrt
-
-    lat1, lng1 = a
-    lat2, lng2 = b
-    dlat = radians(lat2 - lat1)
-    dlng = radians(lng2 - lng1)
-    h = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlng / 2) ** 2
-    return 2 * 6371.0088 * asin(sqrt(h))
-
-
 def _fetch_updates(
     c: WatchDutyClient,
     events: list[dict],
@@ -1516,23 +1497,6 @@ def _fetch_updates(
     if bar is not None:
         bar.close()
     return out
-
-
-def _strip_html(s: str) -> str:
-    """Reduce a report's HTML ``message`` body to a single flat line.
-
-    Converts ``<br>`` to a space, paragraph breaks to ``" ¶ "``, drops all
-    other tags, decodes HTML entities via :func:`html.unescape`, and
-    collapses runs of whitespace. Not a general-purpose HTML sanitiser; it
-    targets the small dialect WatchDuty's reporters actually emit.
-    """
-    import re
-
-    s = re.sub(r"<br\s*/?>", " ", s, flags=re.I)
-    s = re.sub(r"</p>\s*<p>", " ¶ ", s, flags=re.I)
-    s = re.sub(r"<[^>]+>", "", s)
-    s = html.unescape(s)
-    return " ".join(s.split())
 
 
 def _print_fires_table(
@@ -1618,9 +1582,9 @@ def _print_fires_table(
             who = (r.get("user_created") or {}).get("display_name") or "?"
             ts = r.get("date_created") or ""
             when = ts[:16].replace("T", " ")
-            rel = _format_age_relative(ts)
+            rel = format_age_relative(ts)
             ts_block = f"[{when}]" + (f" {rel}" if rel else "")
-            msg = _strip_html(r.get("message") or "")
+            msg = strip_html(r.get("message") or "", para_sep=" ¶ ")
             if len(msg) > 180:
                 msg = msg[:177] + "..."
             print(

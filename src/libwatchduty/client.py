@@ -10,10 +10,13 @@ evac_zone_statuses); all other GETs go through unmodified.
 
 from __future__ import annotations
 
+import threading
 import time
 from typing import Any, Iterable, Iterator
 
 import requests
+
+from ._types import Camera, GeoEvent, RadioFeed, Report
 
 API_BASE = "https://api.watchduty.org/api/v1"
 APP_ORIGIN = "https://app.watchduty.org"
@@ -52,7 +55,7 @@ class WatchDutyError(RuntimeError):
         method: str | None = None,
         url: str | None = None,
     ):
-        if method and url and method not in message:
+        if method and url and not message.startswith(f"{method} "):
             message = f"{method} {url} -> {message}"
         super().__init__(message)
         self.status = status
@@ -79,6 +82,7 @@ class WatchDutyClient:
         timeout: float | tuple[float, float] = (5.0, 20.0),
         session: requests.Session | None = None,
         retries: int = 3,
+        min_interval: float = 0.1,
     ):
         """Build a client.
 
@@ -90,10 +94,15 @@ class WatchDutyClient:
                 (applied to both connect and read) or a (connect, read) tuple.
             session: Reuse an existing requests.Session; one is created if omitted.
             retries: Max attempts per request on connection errors / 5xx (default 3).
+            min_interval: Minimum seconds between request starts on this client
+                (thread-safe). Be polite to api.watchduty.org. Set to 0 to disable.
         """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.retries = max(1, retries)
+        self.min_interval = min_interval
+        self._rate_lock = threading.Lock()
+        self._last_request_at: float | None = None
         self.session = session or requests.Session()
         self.session.headers.update({
             "Accept": "application/json, text/plain, */*",
@@ -161,7 +170,7 @@ class WatchDutyClient:
         types: Iterable[str] = GEO_EVENT_TYPES,
         *,
         active_only: bool = False,
-    ) -> list[dict]:
+    ) -> list[GeoEvent]:
         """List geo events (wildfires, locations, flooding, hazards).
 
         Args:
@@ -171,12 +180,12 @@ class WatchDutyClient:
         Returns the full list of event dicts.
         """
         params = {"geo_event_types": ",".join(types), "ts": _cache_ts()}
-        events = self._get("/geo_events/", params=params)
+        events = self._get("/geo_events/", params=params) or []
         if active_only:
             events = [e for e in events if e.get("is_active")]
         return events
 
-    def get_geo_event(self, geo_event_id: int) -> dict:
+    def get_geo_event(self, geo_event_id: int) -> GeoEvent:
         """Return the full geo event dict for `geo_event_id`. Raises WatchDutyError on 404."""
         return self._get(
             f"/geo_events/{geo_event_id}/", params={"ts": _cache_ts()}
@@ -186,7 +195,7 @@ class WatchDutyClient:
         self,
         modified_since: str,
         types: Iterable[str] = GEO_EVENT_TYPES,
-    ) -> list[dict]:
+    ) -> list[GeoEvent]:
         """List geo events whose date_modified >= `modified_since` (YYYY-MM-DD or ISO-8601).
 
         Useful for incremental sync. Sends modified_since to the server and also
@@ -214,7 +223,7 @@ class WatchDutyClient:
         has_lat_lng: bool | None = None,
         limit: int | None = None,
         offset: int | None = None,
-    ) -> list[dict]:
+    ) -> list[Report]:
         """Reports (updates) for a geo_event.
 
         Normalises the upstream response (which may be either a list or a
@@ -237,7 +246,7 @@ class WatchDutyClient:
             return r["results"]
         return r or []
 
-    def get_report(self, report_id: int) -> dict:
+    def get_report(self, report_id: int) -> Report:
         """Single report (update) by id."""
         return self._get(f"/reports/{report_id}")
 
@@ -280,7 +289,7 @@ class WatchDutyClient:
         *,
         status: str = "approved",
         page_size: int = 50,
-    ) -> Iterator[dict]:
+    ) -> Iterator[Report]:
         """Yield all reports for a geo_event, paging through with limit/offset.
 
         Trusts the server to honor `page_size`; if the server silently caps lower,
@@ -301,7 +310,7 @@ class WatchDutyClient:
 
     # broadcastify (radio) -------------------------------------------------
 
-    def list_radio_feeds(self, lat: float, lng: float) -> list[dict]:
+    def list_radio_feeds(self, lat: float, lng: float) -> list[RadioFeed]:
         """Broadcastify scanner feeds near a point.
 
         Each feed: {feed_id, name, description, online, listeners, listen_url}.
@@ -324,7 +333,7 @@ class WatchDutyClient:
 
     def list_cameras(
         self, lat: float | None = None, lng: float | None = None
-    ) -> list[dict]:
+    ) -> list[Camera]:
         """Wildfire-detection PTZ cameras (AlertCalifornia / AlertWest etc).
 
         With lat/lng, returns cameras near that point. Without, returns all.
@@ -336,11 +345,11 @@ class WatchDutyClient:
             params["lng"] = lng
         return self._get("/cameras/", params=params or None)
 
-    def get_camera(self, camera_id: str | int) -> dict:
+    def get_camera(self, camera_id: str | int) -> Camera:
         """Return metadata for a single PTZ camera by id (numeric or string)."""
         return self._get(f"/cameras/{camera_id}/")
 
-    def list_cameras_by_provider(self, provider: str) -> list[dict]:
+    def list_cameras_by_provider(self, provider: str) -> list[Camera]:
         """Cameras filtered by provider (e.g. "alertwest", "awf").
 
         Server currently ignores ?provider= and returns the full catalog, so this
@@ -355,7 +364,7 @@ class WatchDutyClient:
         max_lat: float,
         min_lng: float,
         max_lng: float,
-    ) -> list[dict]:
+    ) -> list[Camera]:
         """Cameras within a lat/lng bounding box.
 
         Server ignores bbox today, so this sends it for forward-compat and
@@ -470,6 +479,24 @@ class WatchDutyClient:
 
     # internals ------------------------------------------------------------
 
+    def _throttle(self) -> None:
+        """Space request starts at least `min_interval` seconds apart.
+
+        Thread-safe: under the lock each caller reserves the next start slot
+        (monotonic clock), then sleeps outside the lock until its slot arrives,
+        so concurrent callers get evenly spaced starts. No-op when
+        min_interval <= 0.
+        """
+        if self.min_interval <= 0:
+            return
+        with self._rate_lock:
+            now = time.monotonic()
+            last = self._last_request_at
+            wait = 0.0 if last is None else max(0.0, last + self.min_interval - now)
+            self._last_request_at = now + wait
+        if wait > 0:
+            time.sleep(wait)
+
     def _get(
         self,
         path: str,
@@ -499,6 +526,7 @@ class WatchDutyClient:
         r: requests.Response | None = None
 
         for attempt in range(self.retries):
+            self._throttle()
             try:
                 r = self.session.request(
                     method, url, params=params, json=json, timeout=eff_timeout

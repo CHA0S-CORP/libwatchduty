@@ -51,6 +51,15 @@ TREE_LAST = "└─ "
 TREE_PIPE = "│  "
 TREE_BLANK = "   "
 
+# Memoized isatty() results keyed by id(stream); use_color() is called per
+# painted cell and isatty() is a syscall. Env vars are still read live.
+_TTY_CACHE: dict = {}
+
+
+def _reset_tty_cache() -> None:
+    """Clear the memoized isatty() results (for tests)."""
+    _TTY_CACHE.clear()
+
 
 def use_color(stream: Optional[IO] = None) -> bool:
     """Return True if ANSI color should be emitted on ``stream``.
@@ -68,10 +77,15 @@ def use_color(stream: Optional[IO] = None) -> bool:
         return False
     if "NO_COLOR" in os.environ:
         return False
-    try:
-        return bool(stream.isatty())
-    except (AttributeError, ValueError):
-        return False
+    key = id(stream)
+    cached = _TTY_CACHE.get(key)
+    if cached is None:
+        try:
+            cached = bool(stream.isatty())
+        except (AttributeError, ValueError):
+            cached = False
+        _TTY_CACHE[key] = cached
+    return cached
 
 
 def paint(text: str, *codes: str, stream: Optional[IO] = None) -> str:

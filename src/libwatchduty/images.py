@@ -61,7 +61,9 @@ def render_kitty(
         data: raw image bytes (PNG/JPEG/etc).
         max_cols: clamp to N terminal cells wide.
         max_rows: clamp to N terminal cells tall.
-        fmt: kitty format code; 100 = PNG/JPEG auto-detect.
+        fmt: kitty format code; 100 = PNG per the protocol spec. Recent
+            kitty (>= 0.28) and ghostty auto-detect JPEG data under f=100
+            too; older strict implementations may reject non-PNG bytes.
 
     Returns the full escape sequence string. The caller is responsible for
     placing the cursor at the desired row first. Empty string if ``data``
@@ -71,7 +73,7 @@ def render_kitty(
         return ""
     payload = base64.standard_b64encode(data).decode("ascii")
     # Build the header params for the first chunk.
-    params = [f"a=T", f"f={fmt}"]
+    params = ["a=T", f"f={fmt}"]
     if max_cols:
         params.append(f"c={max_cols}")
     if max_rows:

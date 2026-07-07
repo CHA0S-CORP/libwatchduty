@@ -13,7 +13,7 @@ import pytest
 
 pyte = pytest.importorskip("pyte")
 
-from libwatchduty import tui as _tui
+from libwatchduty import tui as _tui  # noqa: E402  (import must follow importorskip)
 
 
 def _render_lines_into_pyte(lines: list[str], cols: int = 80, rows: int = 24) -> list[str]:

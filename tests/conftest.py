@@ -8,7 +8,7 @@ returns canned static data covering the methods the TUI calls.
 from __future__ import annotations
 
 import time
-from typing import Any, Iterator
+from typing import Iterator
 
 import pytest
 
